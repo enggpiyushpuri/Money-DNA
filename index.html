@@ -38,30 +38,56 @@ html,body{min-height:100vh;background:var(--bg);color:var(--txt);font-family:-ap
 .hero h1{font-size:clamp(30px,8.5vw,50px);font-weight:900;line-height:1.09;letter-spacing:-.025em;margin-bottom:14px}
 .gt{background:linear-gradient(130deg,var(--gold-lt),var(--gold),var(--gold-dk));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .hero p{font-size:15px;color:var(--muted);max-width:330px;margin:0 auto;line-height:1.65}
+
+/* SOCIAL PROOF BAR */
+.social-proof{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:18px;flex-wrap:wrap}
+.sp-avatars{display:flex;margin-right:4px}
+.sp-av{width:26px;height:26px;border-radius:50%;border:2px solid var(--bg);font-size:11px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#6366f1,#8b5cf6);margin-left:-8px;flex-shrink:0}
+.sp-av:first-child{margin-left:0}
+.sp-text{font-size:12px;color:var(--muted);line-height:1.4}
+.sp-text strong{color:var(--gold)}
+
 .form-wrap{max-width:430px;margin:0 auto;padding:0 20px 60px}
 .fg{margin-bottom:18px}
 .fg label{display:block;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);margin-bottom:7px}
+
+/* INPUT WITH HINT ICON */
+.input-wrap{position:relative}
 .fg input{width:100%;padding:13px 15px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.09);border-radius:12px;color:var(--txt);font-size:16px;font-family:inherit;outline:none;transition:border-color .2s,background .2s;-webkit-appearance:none;appearance:none}
 .fg input:focus{border-color:rgba(201,168,76,.45);background:rgba(201,168,76,.04)}
 .fg input::placeholder{color:rgba(255,255,255,.22)}
 .fg input::-webkit-calendar-picker-indicator{filter:invert(.45)}
 .fg input.err{border-color:rgba(225,29,72,.5)}
+.field-hint{font-size:11px;color:var(--muted2);margin-top:5px;line-height:1.4}
 .err-msg{font-size:11px;color:#f87171;margin-top:5px;display:none}
+
+/* PROGRESS DOTS */
+.progress-dots{display:flex;gap:6px;justify-content:center;margin-bottom:22px}
+.pd{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.12);transition:background .3s,transform .3s}
+.pd.active{background:var(--gold);transform:scale(1.3)}
+.pd.done{background:rgba(201,168,76,.4)}
+
 .btn-go{width:100%;padding:15px;background:linear-gradient(135deg,#b8920e,var(--gold),#e0bf60);border:none;border-radius:12px;color:#1a0f00;font-size:15px;font-weight:900;font-family:inherit;cursor:pointer;margin-top:6px;letter-spacing:.02em;box-shadow:0 4px 28px rgba(201,168,76,.28);transition:transform .15s,box-shadow .15s}
 .btn-go:hover{transform:translateY(-1px);box-shadow:0 6px 36px rgba(201,168,76,.38)}
 .btn-go:active{transform:translateY(0)}
+.btn-go:disabled{opacity:.6;cursor:not-allowed;transform:none}
 .trust-row{display:flex;justify-content:center;gap:20px;margin-top:14px;flex-wrap:wrap}
 .trust-item{font-size:11px;color:var(--muted2);display:flex;align-items:center;gap:5px}
 
 /* ── LOADING ── */
-#s-load{display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--bg);background-image:radial-gradient(ellipse 80% 55% at 50% 0%,rgba(201,168,76,.1),transparent)}
+/* display:none inherited from .scr; only flex when .on is added by JS */
+#s-load{flex-direction:column;align-items:center;justify-content:center;background:var(--bg);background-image:radial-gradient(ellipse 80% 55% at 50% 0%,rgba(201,168,76,.1),transparent)}
+#s-load.on{display:flex!important}
 .load-inner{text-align:center;padding:40px 24px;max-width:340px;width:100%}
 .orbs{position:relative;width:88px;height:88px;margin:0 auto 38px}
 .orb{position:absolute;inset:0;border-radius:50%;border:2px solid transparent}
-.orb1{border-top-color:var(--gold);border-right-color:rgba(201,168,76,.2);animation:spin 1.7s linear infinite}
-.orb2{inset:13px;border-bottom-color:var(--purple);border-left-color:rgba(124,58,237,.2);animation:spin 2.3s linear infinite reverse}
-.orb3{inset:26px;border-top-color:var(--teal);border-right-color:rgba(8,145,178,.2);animation:spin 3.1s linear infinite}
-.orb-core{position:absolute;inset:37px;background:radial-gradient(circle,rgba(201,168,76,.9),rgba(201,168,76,.2));border-radius:50%;animation:pulse 1.6s ease-in-out infinite}
+/* Animations are paused by default; activated via .animate class on #s-load */
+.orb1{border-top-color:var(--gold);border-right-color:rgba(201,168,76,.2);animation:spin 1.7s linear infinite paused}
+.orb2{inset:13px;border-bottom-color:var(--purple);border-left-color:rgba(124,58,237,.2);animation:spin 2.3s linear infinite reverse paused}
+.orb3{inset:26px;border-top-color:var(--teal);border-right-color:rgba(8,145,178,.2);animation:spin 3.1s linear infinite paused}
+.orb-core{position:absolute;inset:37px;background:radial-gradient(circle,rgba(201,168,76,.9),rgba(201,168,76,.2));border-radius:50%;animation:pulse 1.6s ease-in-out infinite paused}
+/* Unpause when screen is active */
+#s-load.animate .orb1,#s-load.animate .orb2,#s-load.animate .orb3,#s-load.animate .orb-core{animation-play-state:running}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes pulse{0%,100%{opacity:.55;transform:scale(.88)}50%{opacity:1;transform:scale(1.12)}}
 #load-msg{font-size:17px;font-weight:600;min-height:26px;margin-bottom:22px;transition:opacity .3s}
@@ -78,6 +104,13 @@ html,body{min-height:100vh;background:var(--bg);color:var(--txt);font-family:-ap
 .arch-badge{display:inline-block;padding:5px 15px;background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.28);border-radius:100px;font-size:11px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;color:var(--gold);margin-bottom:14px}
 .res-hdr h2{font-size:clamp(22px,5.5vw,34px);font-weight:900;line-height:1.18;margin-bottom:6px}
 .res-hdr p{font-size:13px;color:var(--muted)}
+
+/* QUICK SCORE HERO */
+.score-hero{display:flex;justify-content:center;gap:28px;margin-top:18px}
+.sh-stat{text-align:center}
+.sh-num{font-size:36px;font-weight:900;line-height:1}
+.sh-lbl{font-size:10px;color:var(--muted);font-weight:600;letter-spacing:.05em;margin-top:3px}
+
 .rsec{max-width:476px;margin:0 auto;padding:22px 16px 0}
 .slbl{font-size:10px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);margin-bottom:12px;padding-left:2px;opacity:.85}
 
@@ -110,8 +143,9 @@ html,body{min-height:100vh;background:var(--bg);color:var(--txt);font-family:-ap
 .g-ultra{background:linear-gradient(90deg,var(--gold-dk),var(--gold),var(--gold-lt))}
 
 /* TRAITS */
-.tgrid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:22px}
+.tgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px;margin-bottom:22px}
 .ti{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:11px 13px}
+.ti-top{border-color:rgba(201,168,76,.35);background:rgba(201,168,76,.06)}
 .tn{font-size:10px;color:var(--muted);font-weight:600;letter-spacing:.04em;margin-bottom:7px}
 .ttrack{height:3px;background:rgba(255,255,255,.07);border-radius:2px;overflow:hidden;margin-bottom:3px}
 .tfill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--gold-dk),var(--gold));transition:width 1.1s ease .6s;width:0%}
@@ -138,6 +172,11 @@ html,body{min-height:100vh;background:var(--bg);color:var(--txt);font-family:-ap
 .tli{position:relative;padding-bottom:22px}
 .tli:last-child{padding-bottom:0}
 .tldot{position:absolute;left:-37px;top:0;width:38px;height:38px;background:var(--bg2);border:2px solid var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;z-index:1}
+
+/* CURRENT AGE HIGHLIGHT */
+.tli.current-phase .tldot{background:rgba(201,168,76,.2);box-shadow:0 0 0 4px rgba(201,168,76,.15)}
+.tli.current-phase .tlph::after{content:' — You are here';font-size:10px;color:var(--gold);font-weight:700;letter-spacing:.05em;opacity:.8}
+
 .tla{font-size:10px;font-weight:800;letter-spacing:.07em;color:var(--gold);text-transform:uppercase;margin-bottom:3px}
 .tlph{font-size:14px;font-weight:800;margin-bottom:4px}
 .tld{font-size:12px;color:var(--muted);line-height:1.55}
@@ -153,11 +192,19 @@ html,body{min-height:100vh;background:var(--bg);color:var(--txt);font-family:-ap
 .rcard p{font-size:13.5px;line-height:1.8;color:#bbb;margin-bottom:14px}
 .rcard p:last-child{margin-bottom:0}
 
+/* INSIGHTS CHIPS */
+.insights-row{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:18px}
+.insight-chip{font-size:11px;font-weight:600;padding:5px 12px;border-radius:100px;border:1px solid rgba(255,255,255,.09);color:var(--muted);background:rgba(255,255,255,.03)}
+.insight-chip.gold{border-color:rgba(201,168,76,.3);color:var(--gold);background:rgba(201,168,76,.07)}
+.insight-chip.green{border-color:rgba(22,163,74,.3);color:#4ade80;background:rgba(22,163,74,.07)}
+
 /* SHARE */
 .share-btn{width:100%;padding:14px;background:transparent;border:1px solid rgba(201,168,76,.38);border-radius:12px;color:var(--gold);font-size:14px;font-weight:800;font-family:inherit;cursor:pointer;margin-bottom:10px;transition:background .2s}
 .share-btn:hover{background:rgba(201,168,76,.08)}
-.restart-btn{width:100%;padding:12px;background:transparent;border:1px solid rgba(255,255,255,.1);border-radius:12px;color:var(--muted);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;transition:background .2s}
+.restart-btn{width:100%;padding:12px;background:transparent;border:1px solid rgba(255,255,255,.1);border-radius:12px;color:var(--muted);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;transition:background .2s;margin-bottom:10px}
 .restart-btn:hover{background:rgba(255,255,255,.04)}
+.copy-link-btn{width:100%;padding:12px;background:transparent;border:1px solid rgba(255,255,255,.08);border-radius:12px;color:var(--muted2);font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;transition:background .2s,color .2s;display:flex;align-items:center;justify-content:center;gap:6px}
+.copy-link-btn:hover{background:rgba(255,255,255,.03);color:var(--muted)}
 .disc{font-size:10px;color:rgba(255,255,255,.2);text-align:center;padding:0 20px;line-height:1.65;margin-top:14px}
 
 /* SHARE OVERLAY */
@@ -177,13 +224,27 @@ html,body{min-height:100vh;background:var(--bg);color:var(--txt);font-family:-ap
 .sh-path{font-size:11px;color:var(--muted);line-height:1.55;margin-bottom:18px;position:relative;z-index:1}
 .sh-path strong{color:var(--txt)}
 .sh-disc{font-size:8px;color:rgba(255,255,255,.18);line-height:1.5;position:relative;z-index:1}
+.sh-actions{display:flex;flex-direction:column;gap:8px;margin-top:18px;position:relative;z-index:1}
+.sh-copy-btn{padding:10px;background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.3);border-radius:10px;color:var(--gold);font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;transition:background .2s}
+.sh-copy-btn:hover{background:rgba(201,168,76,.18)}
+.sh-copy-btn.copied{background:rgba(22,163,74,.15);border-color:rgba(22,163,74,.3);color:#4ade80}
+.sh-native-btn{padding:10px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:var(--muted);font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;transition:background .2s;display:none}
+.sh-native-btn:hover{background:rgba(255,255,255,.09)}
+
+/* TOAST */
+#toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(20px);background:rgba(22,163,74,.9);color:#fff;font-size:13px;font-weight:700;padding:10px 20px;border-radius:100px;z-index:500;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;white-space:nowrap}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
 /* ANIMATIONS */
 @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
 .fu{animation:fadeUp .55s ease both}
 .fu1{animation-delay:.05s}.fu2{animation-delay:.1s}.fu3{animation-delay:.18s}.fu4{animation-delay:.26s}.fu5{animation-delay:.34s}.fu6{animation-delay:.42s}.fu7{animation-delay:.5s}.fu8{animation-delay:.58s}
 
+/* SECTION DIVIDER */
+.sec-divider{height:1px;background:linear-gradient(90deg,transparent,rgba(201,168,76,.15),transparent);margin:8px 0 22px}
+
 @media(max-width:370px){.mg,.tgrid{grid-template-columns:1fr}.ngrid{grid-template-columns:repeat(2,1fr)}}
+@media(prefers-reduced-motion:reduce){.orb1,.orb2,.orb3,.orb-core,.fu,.fu1,.fu2,.fu3,.fu4,.fu5,.fu6,.fu7,.fu8{animation:none!important;transition:none!important}}
 </style>
 </head>
 <body>
@@ -197,29 +258,48 @@ html,body{min-height:100vh;background:var(--bg);color:var(--txt);font-family:-ap
     </div>
     <h1>Discover Your<br><span class="gt">Wealth Blueprint</span></h1>
     <p>Uncover your financial patterns, success trajectory, and wealth potential — encoded in your DNA.</p>
+    <div class="social-proof">
+      <div class="sp-avatars">
+        <div class="sp-av">🌟</div>
+        <div class="sp-av">💎</div>
+        <div class="sp-av">🚀</div>
+        <div class="sp-av">⚡</div>
+      </div>
+      <div class="sp-text">Analyzed by <strong>840,000+</strong> people worldwide</div>
+    </div>
   </div>
   <div class="form-wrap">
+    <div class="progress-dots" id="progress-dots">
+      <div class="pd active" id="pd0"></div>
+      <div class="pd" id="pd1"></div>
+      <div class="pd" id="pd2"></div>
+      <div class="pd" id="pd3"></div>
+    </div>
     <div class="fg">
       <label>Full Name</label>
-      <input type="text" id="f-name" placeholder="Your full name" autocomplete="name">
+      <input type="text" id="f-name" placeholder="Your full name" autocomplete="name" oninput="updateDots()">
+      <div class="field-hint">Used to calculate your Expression, Soul Urge &amp; Personality numbers.</div>
       <div class="err-msg" id="e-name">Please enter your full name.</div>
     </div>
     <div class="fg">
       <label>Date of Birth</label>
-      <input type="date" id="f-dob" max="2010-12-31" min="1930-01-01">
+      <input type="date" id="f-dob" max="2010-12-31" min="1930-01-01" onchange="updateDots()">
+      <div class="field-hint">Your Life Path and destiny numbers are rooted here.</div>
       <div class="err-msg" id="e-dob">Please enter your date of birth.</div>
     </div>
     <div class="fg">
       <label>Time of Birth</label>
-      <input type="time" id="f-tob">
+      <input type="time" id="f-tob" onchange="updateDots()">
+      <div class="field-hint">Shapes your wealth timing cycles and opportunity windows.</div>
       <div class="err-msg" id="e-tob">Please enter your time of birth.</div>
     </div>
     <div class="fg">
       <label>Birth Place</label>
-      <input type="text" id="f-place" placeholder="City, Country" autocomplete="off">
+      <input type="text" id="f-place" placeholder="City, Country" autocomplete="off" oninput="updateDots()">
+      <div class="field-hint">Geographic patterns affect your career alignment and archetype.</div>
       <div class="err-msg" id="e-place">Please enter your birth place.</div>
     </div>
-    <button class="btn-go" onclick="startAnalysis()">Analyze My Money DNA →</button>
+    <button class="btn-go" id="btn-go" onclick="startAnalysis()">Analyze My Money DNA →</button>
     <div class="trust-row">
       <div class="trust-item">🔒 Never stored</div>
       <div class="trust-item">⚡ Instant results</div>
@@ -249,6 +329,20 @@ html,body{min-height:100vh;background:var(--bg);color:var(--txt);font-family:-ap
     <div class="arch-badge" id="r-archbadge"></div>
     <h2 id="r-hdr"></h2>
     <p id="r-sub"></p>
+    <div class="score-hero">
+      <div class="sh-stat">
+        <div class="sh-num c-gold" id="rh-ws"></div>
+        <div class="sh-lbl">Wealth Score</div>
+      </div>
+      <div class="sh-stat">
+        <div class="sh-num c-purple" id="rh-ss"></div>
+        <div class="sh-lbl">Success Score</div>
+      </div>
+      <div class="sh-stat">
+        <div class="sh-num c-green" id="rh-mp"></div>
+        <div class="sh-lbl">Millionaire %</div>
+      </div>
+    </div>
   </div>
 
   <div class="rsec fu fu2">
@@ -276,6 +370,13 @@ html,body{min-height:100vh;background:var(--bg);color:var(--txt);font-family:-ap
   </div>
 
   <div class="rsec fu fu3">
+    <div class="slbl">Key Signals</div>
+    <div class="insights-row" id="r-insights"></div>
+  </div>
+
+  <div class="sec-divider"></div>
+
+  <div class="rsec fu fu3">
     <div class="slbl">Wealth Archetype</div>
     <div class="rcard" id="r-archdesc" style="margin-bottom:10px"></div>
   </div>
@@ -289,6 +390,8 @@ html,body{min-height:100vh;background:var(--bg);color:var(--txt);font-family:-ap
     <div class="slbl">Numerology Blueprint</div>
     <div class="ngrid" id="r-nums"></div>
   </div>
+
+  <div class="sec-divider"></div>
 
   <div class="rsec fu fu4">
     <div class="slbl">Top Career Alignments</div>
@@ -309,6 +412,8 @@ html,body{min-height:100vh;background:var(--bg);color:var(--txt);font-family:-ap
     </div>
   </div>
 
+  <div class="sec-divider"></div>
+
   <div class="rsec fu fu7">
     <div class="slbl">Your Money DNA Report</div>
     <div class="rcard" id="r-report"></div>
@@ -317,6 +422,9 @@ html,body{min-height:100vh;background:var(--bg);color:var(--txt);font-family:-ap
   <div class="rsec fu fu8">
     <button class="share-btn" onclick="openShare()">📲 View &amp; Share Your Results Card</button>
     <button class="restart-btn" onclick="restart()">← Analyze Someone Else</button>
+    <button class="copy-link-btn" onclick="copyResults()" id="copy-link-btn">
+      <span>📋</span><span>Copy your results summary</span>
+    </button>
     <div class="disc">This experience is generated using entertainment-focused pattern analysis and deterministic calculations. It should not be considered financial, investment, legal, career, or life advice. Results are for entertainment purposes only.</div>
   </div>
 </div>
@@ -336,21 +444,25 @@ html,body{min-height:100vh;background:var(--bg);color:var(--txt);font-family:-ap
       <div class="sh-mc"><div class="sh-mv" id="sh-up"></div><div class="sh-ml">Ultra-Wealth</div></div>
     </div>
     <div class="sh-path" id="sh-path"></div>
-    <div class="sh-disc">Entertainment only. Not financial advice. moneydna.app</div>
+    <div class="sh-disc">
+  For fun & entertainment only. Do not take these results literally. Not financial, investment, career, legal, or life advice.
+</div>
+    <div class="sh-actions">
+      <button class="sh-copy-btn" id="sh-copy-btn" onclick="copyShareText()">📋 Copy Results to Share</button>
+      <button class="sh-native-btn" id="sh-native-btn" onclick="nativeShare()">↑ Share via...</button>
+    </div>
   </div>
 </div>
+
+<!-- TOAST -->
+<div id="toast"></div>
 
 <script>
 // ══════════════════════════════════
 //  UTILITIES
 // ══════════════════════════════════
 function hc(s){let h=5381;for(let i=0;i<s.length;i++){h=((h<<5)+h)+s.charCodeAt(i);h=h&h}return Math.abs(h)}
-
-function lcg(seed){
-  let s=seed>>>0;
-  return()=>{s=(Math.imul(1664525,s)+1013904223)>>>0;return s/4294967296};
-}
-
+function lcg(seed){let s=seed>>>0;return()=>{s=(Math.imul(1664525,s)+1013904223)>>>0;return s/4294967296}}
 function mapRange(v,lo,hi){return lo+((v%(hi-lo+1)+hi-lo+1)%(hi-lo+1))}
 
 // ══════════════════════════════════
@@ -366,14 +478,9 @@ function reduceNum(n,master=true){
   }
   return n;
 }
-
 const PYT={a:1,b:2,c:3,d:4,e:5,f:6,g:7,h:8,i:9,j:1,k:2,l:3,m:4,n:5,o:6,p:7,q:8,r:9,s:1,t:2,u:3,v:4,w:5,x:6,y:7,z:8};
 const VOWELS=new Set(['a','e','i','o','u']);
-
-function nameDigits(name,fn){
-  return name.toLowerCase().replace(/[^a-z]/g,'').split('').filter(fn).reduce((s,c)=>s+(PYT[c]||0),0);
-}
-
+function nameDigits(name,fn){return name.toLowerCase().replace(/[^a-z]/g,'').split('').filter(fn).reduce((s,c)=>s+(PYT[c]||0),0)}
 function calcNums(name,dob){
   const pts=dob.split('-');
   const yr=pts[0].split('').reduce((s,d)=>s+parseInt(d),0);
@@ -394,7 +501,6 @@ function calcNums(name,dob){
 //  TRAIT ENGINE
 // ══════════════════════════════════
 const TNAMES=['Leadership','Discipline','Creativity','Innovation','Risk Tolerance','Persistence','Communication','Adaptability','Strategic Thinking','Execution Ability','Independence','Ambition','Opportunity Recognition','Long-Term Thinking','Wealth Building','Influence','Learning Ability','Resilience','Vision','Analytical Thinking'];
-
 function calcTraits(seed,nums,timeMin,placeH){
   const rng=lcg(seed);
   const t={};
@@ -402,7 +508,6 @@ function calcTraits(seed,nums,timeMin,placeH){
   const lpTrait=lpBoosts[nums.lifePath]||null;
   const timeRatio=timeMin/1439;
   const placeRatio=(placeH%997)/997;
-
   TNAMES.forEach((name,i)=>{
     let v=rng()*46+34;
     v+=(nums.lifePath/33)*9;
@@ -465,7 +570,6 @@ const ARCHETYPES=[
   {n:'The Maestro',d:'Performs at the absolute apex of their chosen domain.'},
   {n:'The Accelerator',d:'Compresses timelines — achieving in months what takes others years.'},
 ];
-
 function pickArchetype(traits,seed){
   const sorted=Object.entries(traits).sort((a,b)=>b[1]-a[1]);
   const topSum=sorted.slice(0,5).reduce((s,[,v])=>s+v,0);
@@ -531,11 +635,7 @@ const CAREERS=[
   {n:'Trading Professional',d:'Generate returns by mastering markets and managing risk',k:['Analytical Thinking','Risk Tolerance','Discipline']},
   {n:'Creative Director',d:'Lead the visual and creative language of major brands',k:['Creativity','Leadership','Vision']},
 ];
-
-function scoreCareer(career,traits){
-  return career.k.reduce((s,k)=>s+(traits[k]||50),0);
-}
-
+function scoreCareer(career,traits){return career.k.reduce((s,k)=>s+(traits[k]||50),0)}
 function pickCareers(traits,seed){
   const rng=lcg(seed^0xABCD);
   return CAREERS
@@ -551,20 +651,16 @@ function calcScores(traits,nums,seed,timeMin,placeH){
   const tv=Object.values(traits);
   const avg=tv.reduce((a,b)=>a+b,0)/tv.length;
   const rng=lcg(seed^0x1F2E);
-
   const lpB=[8,22,1].includes(nums.lifePath)?9:0;
   const timeB=timeMin>300&&timeMin<840?5:0;
   const placeB=(placeH%30>15)?4:-1;
   const expB=nums.expression>=7?6:2;
-
   const ws=Math.min(95,Math.max(38,Math.round(avg*0.62+lpB+timeB+placeB+rng()*16-3)));
   const ss=Math.min(97,Math.max(40,Math.round(avg*0.67+expB+(rng()*14)-2)));
   const mp=Math.min(87,Math.max(18,Math.round(ws*0.84+rng()*14-2)));
   const up=Math.min(44,Math.max(4,Math.round(mp*0.33+rng()*10)));
-
   return{ws,ss,mp,up};
 }
-
 function wealthCat(ws){
   if(ws>=85)return{l:'Elite',cls:'b-elite'};
   if(ws>=72)return{l:'Strong',cls:'b-strong'};
@@ -578,84 +674,74 @@ function wealthCat(ws){
 // ══════════════════════════════════
 function calcTimeline(dob,scores,seed){
   const by=parseInt(dob.split('-')[0]);
-  const age2026=2026-by;
+  const currentYear=new Date().getFullYear();
+  const age=currentYear-by;
   const base=22+mapRange(seed,0,9);
   const phases=[
-    {icon:'🌱',age:`${base}–${base+4}`,ph:'First Breakthrough',d:'Initial momentum crystallizes. Key relationships and opportunities emerge that lay the structural foundation for everything ahead.'},
-    {icon:'⚡',age:`${base+7}–${base+12}`,ph:'Acceleration Phase',d:'Skill, income, and influence compound rapidly. Multiple opportunities converge simultaneously. This is the fastest-moving window in your trajectory.'},
-    {icon:'🚀',age:`${base+15}–${base+21}`,ph:'Opportunity Expansion',d:'Your reputation, network, and capital reach critical mass. The peak opportunity window opens — with your highest probability of major breakthroughs.'},
-    {icon:'💎',age:`${base+23}–${base+30}`,ph:'Peak Prosperity',d:'Maximum wealth generation and influence. Legacy-defining achievements arrive. Assets compound on their own momentum.'},
-    {icon:'🏛️',age:`${base+32}–${base+40}`,ph:'Legacy Phase',d:'Long-term impact solidifies into permanent legacy. Wealth operates independently. Focus shifts to generational impact and defining enduring institutions.'},
+    {icon:'🌱',age:`${base}–${base+4}`,ph:'First Breakthrough',d:'Initial momentum crystallizes. Key relationships and opportunities emerge that lay the structural foundation for everything ahead.',startAge:base,endAge:base+4},
+    {icon:'⚡',age:`${base+7}–${base+12}`,ph:'Acceleration Phase',d:'Skill, income, and influence compound rapidly. Multiple opportunities converge simultaneously. This is the fastest-moving window in your trajectory.',startAge:base+7,endAge:base+12},
+    {icon:'🚀',age:`${base+15}–${base+21}`,ph:'Opportunity Expansion',d:'Your reputation, network, and capital reach critical mass. The peak opportunity window opens — with your highest probability of major breakthroughs.',startAge:base+15,endAge:base+21},
+    {icon:'💎',age:`${base+23}–${base+30}`,ph:'Peak Prosperity',d:'Maximum wealth generation and influence. Legacy-defining achievements arrive. Assets compound on their own momentum.',startAge:base+23,endAge:base+30},
+    {icon:'🏛️',age:`${base+32}–${base+40}`,ph:'Legacy Phase',d:'Long-term impact solidifies into permanent legacy. Wealth operates independently. Focus shifts to generational impact and defining enduring institutions.',startAge:base+32,endAge:base+40},
   ];
   const milAge=base+(scores.ws>=80?1:scores.ws>=65?4:7);
-  return{phases,milRange:`${milAge}–${milAge+5}`,base,currentAge:age2026};
+  return{phases,milRange:`${milAge}–${milAge+5}`,base,currentAge:age};
 }
 
 // ══════════════════════════════════
-//  REPORT GENERATOR
+//  INSIGHTS CHIPS
+// ══════════════════════════════════
+const INSIGHT_TEMPLATES=[
+  (d)=>d.nums.lifePath===11||d.nums.lifePath===22||d.nums.lifePath===33?{text:`Master Number ${d.nums.lifePath} Life Path`,cls:'gold'}:null,
+  (d)=>d.scores.ws>=80?{text:'Elite Wealth Profile',cls:'gold'}:null,
+  (d)=>d.scores.mp>=70?{text:'High Millionaire Probability',cls:'green'}:null,
+  (d)=>d.scores.up>=25?{text:'Ultra-Wealth Signal Detected',cls:'gold'}:null,
+  (d)=>d.traits['Leadership']>=80?{text:'Natural Leader',cls:'green'}:null,
+  (d)=>d.traits['Innovation']>=80?{text:'Disruptive Innovator',cls:'green'}:null,
+  (d)=>d.traits['Risk Tolerance']>=80?{text:'High Risk Tolerance',cls:'green'}:null,
+  (d)=>d.traits['Vision']>=80?{text:'Long-Range Visionary',cls:'gold'}:null,
+  (d)=>d.traits['Ambition']>=80?{text:'Extreme Ambition',cls:'gold'}:null,
+  (d)=>d.nums.birthDay===8?{text:'Birth Day 8 — Wealth Number',cls:'gold'}:null,
+  (d)=>d.nums.lifePath===8?{text:'Life Path 8 — The Powerhouse',cls:'gold'}:null,
+  (d)=>d.timeline.currentAge>=d.timeline.base&&d.timeline.currentAge<=d.timeline.base+4?{text:'🌱 In Your Breakthrough Phase',cls:'green'}:null,
+  (d)=>d.timeline.currentAge>=d.timeline.base+7&&d.timeline.currentAge<=d.timeline.base+12?{text:'⚡ In Your Acceleration Phase',cls:'green'}:null,
+  (d)=>d.timeline.currentAge>=d.timeline.base+15&&d.timeline.currentAge<=d.timeline.base+21?{text:'🚀 In Peak Opportunity Window',cls:'gold'}:null,
+  (d)=>({text:d.careers[0].n+' Alignment',cls:''}),
+  (d)=>({text:d.arch.n,cls:''}),
+];
+function buildInsights(data){
+  return INSIGHT_TEMPLATES.map(fn=>fn(data)).filter(Boolean).slice(0,7);
+}
+
+// ══════════════════════════════════
+//  REPORT GENERATOR (3 punchy paragraphs)
 // ══════════════════════════════════
 const RP={
-  open:[
-    d=>`${d.fn}, your Money DNA profile reveals a rare convergence — analytical precision paired with visionary ambition that operates on a timescale most people never reach. You carry the pattern of ${d.arch.n}: someone built not merely to participate in wealth creation, but to architect it at scale. The signature embedded in your profile suggests a natural ability to identify what others miss and build what others only imagine.`,
-    d=>`What emerges from your analysis is immediately striking, ${d.fn}: a profile shaped by both restless drive and an extraordinary capacity for sustained execution. As ${d.arch.n}, your financial trajectory is defined by a rare combination — the ambition to go large, and the internal architecture to see it through. Very few profiles carry this convergence at the level yours does.`,
-    d=>`${d.fn}, your profile tells a clear and specific story: you are wired for sustained high performance across multiple domains simultaneously. The ${d.arch.n} pattern you carry is one of the most financially dynamic in this system — associated with individuals who don't just accumulate wealth but who design structures that generate it independently and indefinitely.`,
-    d=>`The patterns within ${d.fn}'s profile point in a single direction: a wealth trajectory shaped less by luck and more by the compounding of deliberate strategic decisions made consistently over time. You carry the archetype of ${d.arch.n} — a pattern consistently associated with individuals who don't just succeed in their field but who fundamentally redefine what success in that field looks like.`,
-    d=>`${d.fn}, few profiles reveal this particular convergence. Your Money DNA reflects the characteristics of ${d.arch.n} — a pattern strongly associated with individuals who achieve not just financial success, but durable long-term influence over markets, industries, and communities. Your wealth trajectory is defined by depth and compounding, not just speed.`,
+  who:[
+    d=>`${d.fn}, you're a classic ${d.arch.n} — driven by ${d.top} and ${d.sec}, with a ${d.wc.l}-tier Wealth Score of ${d.sc.ws}. That combination isn't common. It means you naturally spot opportunities others miss, and when you commit, you follow through. Your biggest career fit is ${d.cars[0].n}, and for good reason — every dominant trait in your profile points straight at it.`,
+    d=>`You show up in the data as ${d.arch.n}, ${d.fn}. Your ${d.top} leads at ${d.tr[d.top]}/100, your ${d.sec} backs it at ${d.tr[d.sec]}/100 — that's a pairing that consistently produces results above what most people expect. Wealth Score: ${d.sc.ws} (${d.wc.l}). Your natural lane is ${d.cars[0].n}, and the numbers make that hard to argue with.`,
+    d=>`The archetype is ${d.arch.n}, and the core engine is ${d.top} + ${d.sec}, ${d.fn}. At a ${d.wc.l}-tier Wealth Score of ${d.sc.ws}, you're not in the average range — you're in the bracket where things compound fast when conditions align. ${d.cars[0].n} is where that energy converts most efficiently.`,
   ],
-  wealth:[
-    d=>`Your Wealth Score of ${d.sc.ws} places you in the ${d.wc.l} tier — a score that reflects not just current potential, but the structural capacity to generate, retain, and grow significant assets over an extended time horizon. This score is anchored by your ${d.top} score of ${d.tr[d.top]}/100 and your ${d.sec} rating of ${d.tr[d.sec]}/100. Together, these two attributes form the primary engine of your financial trajectory.`,
-    d=>`A Wealth Score of ${d.sc.ws} in the ${d.wc.l} category signals that your profile is structurally aligned with above-average wealth accumulation pace. What's particularly notable, ${d.fn}, is your ${d.top} and ${d.sec} pairing — this combination consistently appears in high-net-worth profiles and suggests you have both the drive and the judgment required to build lasting financial assets at meaningful scale.`,
-    d=>`Your ${d.wc.l}-tier Wealth Score of ${d.sc.ws} is anchored by a dominant ${d.top} signature — one of the strongest drivers of long-term wealth accumulation in this framework. When paired with your ${d.sec} rating of ${d.tr[d.sec]}/100, ${d.fn}, the combined profile suggests a wealth-building orientation that is simultaneously ambitious in scope and methodical in execution.`,
-    d=>`With a ${d.sc.ws}/100 Wealth Score, ${d.fn}, you sit firmly in the ${d.wc.l} tier. The ${d.top} (${d.tr[d.top]}) and ${d.sec} (${d.tr[d.sec]}) pairing driving this score consistently appears in the profiles of founders, investors, and executives who reach seven and eight-figure net worth within a 10–15 year window from their first major breakthrough.`,
+  timing:[
+    d=>`Your wealth window opens around age ${d.tl.milRange}. That's your highest-probability window — not because of luck, but because that's when ${d.arch.n} profiles historically see their ${d.top} and ${d.sec} fully compound. Watch the ages ${d.tl.phases[1].age} period closely. That Acceleration Phase is when decisions carry the most leverage. One right move then is worth ten right moves later.`,
+    d=>`Age ${d.tl.milRange} is your breakthrough range, ${d.fn}. The First Breakthrough window (${d.tl.phases[0].age}) is where the foundation gets laid — don't sleep on it. Then the Acceleration Phase (${d.tl.phases[1].age}) hits and things move fast. That's when your ${d.top} becomes a genuine wealth multiplier, not just a personality trait.`,
+    d=>`The numbers point to age ${d.tl.milRange} as your prime wealth window, ${d.fn}. Between now and the Opportunity Expansion phase (age ${d.tl.phases[2].age}), every decision around your ${d.cars[0].n} path compounds. Your Success Potential of ${d.sc.ss} means you have the engine — the timing just needs to be respected.`,
   ],
-  success:[
-    d=>`Your Success Potential of ${d.sc.ss}/100 speaks to something deeper than financial metrics alone. It reflects your capacity to perform under pressure, to build and lead others, and to construct something that outlasts any single transaction or market cycle. Your ${d.tr['Persistence']}/100 Persistence and ${d.tr['Resilience']}/100 Resilience scores, ${d.fn}, reveal someone who doesn't just succeed under ideal conditions — who specifically thrives when conditions become difficult.`,
-    d=>`A Success Potential of ${d.sc.ss} reveals your true operating style, ${d.fn}: you don't merely pursue success — you systematize it. Your ${d.tr['Discipline']}/100 Discipline and ${d.tr['Execution Ability']}/100 Execution Ability signal the kind of follow-through that consistently separates people with great ideas from people who actually build those ideas into reality.`,
-    d=>`${d.fn}'s ${d.sc.ss}/100 Success Potential tells us this: your upside is not constrained by talent. Your Adaptability (${d.tr['Adaptability']}/100) paired with Learning Ability (${d.tr['Learning Ability']}/100) signals that you continuously evolve in response to your environment — one of the most consistently underrated characteristics of people who sustain long-run, high-level performance.`,
-    d=>`The ${d.sc.ss}/100 Success Potential reflects a profile built for compounding performance over time. ${d.fn}, your Vision (${d.tr['Vision']}/100) and Strategic Thinking (${d.tr['Strategic Thinking']}/100) are particularly significant — they indicate an ability to see 5–10 years ahead while maintaining the focus necessary to execute on what matters most right now.`,
-  ],
-  career:[
-    d=>`Your career alignment points strongly toward ${d.cars[0].n} as a primary path, with ${d.cars[1].n} as a powerful adjacent direction. What makes this significant, ${d.fn}, is that both paths specifically reward the trait combination your profile carries — the convergence of ${d.top} and ${d.sec} is unusually high-value in both environments. Your profile suggests someone who won't peak in a single role, but who will build and expand across multiple ventures over time.`,
-    d=>`${d.fn}, your top career alignment — ${d.cars[0].n} — is not coincidental. It's driven directly by your dominant trait signatures. Your ${d.top} (${d.tr[d.top]}/100) combined with Strategic Thinking (${d.tr['Strategic Thinking']}/100) creates a profile that tends to accelerate quickly to leadership positions in this field. The secondary path of ${d.cars[1].n} offers a complementary outlet for the ${d.sec} dimension of your profile — and for many people with your archetype, the two paths eventually converge.`,
-    d=>`Based on your trait architecture, ${d.fn}, ${d.cars[0].n} emerges as the highest-alignment career path. This isn't preference-based — it's driven by your specific combination of ${d.top}, ${d.sec}, and Ambition (${d.tr['Ambition']}/100), which map precisely onto the attributes that drive exceptional outcomes in this field. ${d.cars[1].n} also scores highly as a direction that harnesses a different but equally important facet of your profile.`,
-  ],
-  timeline:[
-    d=>`Your Wealth Timeline shows a First Breakthrough window opening at age ${d.tl.base}–${d.tl.base+4}. This period represents a critical inflection point — the decisions, relationships, and risks taken during this window determine the speed and scale of everything that follows. The Acceleration Phase (ages ${d.tl.phases[1].age}) is historically when ${d.arch.n} profiles see income and net worth move fastest. Your projected Wealth Breakthrough Age falls in the ${d.tl.milRange} range.`,
-    d=>`${d.fn}'s Wealth Timeline rewards strategic patience in the early phases and bold, concentrated action in the middle phases. The First Breakthrough window (ages ${d.tl.phases[0].age}) is a foundation-building period of extraordinary importance. By the time the Opportunity Expansion phase opens (ages ${d.tl.phases[2].age}), the compounding effects of earlier decisions become dramatically and suddenly visible. Your estimated Wealth Breakthrough falls in the ${d.tl.milRange} range.`,
-    d=>`The timing encoded in your profile is precise, ${d.fn}. Your breakthrough window opens in the ${d.tl.phases[0].age} age range — a pivotal convergence where skills, network, and ambition align for the first time at scale. The Acceleration Phase between ages ${d.tl.phases[1].age} then compounds that momentum into something much larger. Based on your ${d.sc.ws}/100 Wealth Score and full trait profile, your most likely Wealth Breakthrough falls in the ${d.tl.milRange} window.`,
-  ],
-  strengths:[
-    d=>`${d.fn}'s dominant strengths are immediately legible from the profile: ${d.top} at ${d.tr[d.top]}/100 leads, followed by ${d.sec} at ${d.tr[d.sec]}/100 and ${d.trd} at ${d.tr[d.trd]}/100. This triad creates a distinctive competitive advantage. Where others rely on a single dominant attribute, your profile delivers multiple high-value capabilities simultaneously — making you exceptionally difficult to replace and consistently valuable in the highest-stakes environments.`,
-    d=>`Your three leading attributes — ${d.top} (${d.tr[d.top]}), ${d.sec} (${d.tr[d.sec]}), and ${d.trd} (${d.tr[d.trd]}) — form the engine of your success profile, ${d.fn}. Each of these independently would represent a significant advantage. Combined, they produce a rare profile that moves faster, generates more value, and builds more durable results than single-trait high performers. This combination is characteristic of people who don't just succeed — they redefine what competing in their space looks like.`,
-    d=>`What stands out most in ${d.fn}'s strength profile is the consistency of the signal. Your leading trait — ${d.top} at ${d.tr[d.top]}/100 — is exceptionally high and well-supported by complementary strengths in ${d.sec} and ${d.trd}. This is a profile built for high-performance environments where others frequently underperform under pressure. You don't just adapt to difficult situations — you characteristically become the person others rely on to navigate them.`,
-  ],
-  blind:[
-    d=>`Every high-performance profile carries blind spots — and ${d.fn}'s is worth understanding precisely. Your ${d.low} score of ${d.tr[d.low]}/100 sits below your profile average — not a weakness to be ashamed of, but a point of critical awareness. The most common risk in profiles like yours is the tendency to over-rely on dominant strengths while underinvesting in the areas that don't come naturally. Deliberate attention here consistently transforms strong profiles into elite ones.`,
-    d=>`${d.fn}'s profile is genuinely strong, but no profile is friction-free. Your ${d.low} score (${d.tr[d.low]}/100) relative to your dominant traits is worth noting clearly. In practice, this often shows up as a tendency to push hard in certain directions while missing signals in others. The most successful individuals with your archetype actively build systems, structures, or partnerships to compensate — turning this potential blind spot into a deliberate structural advantage.`,
-    d=>`The one area where ${d.fn}'s profile invites direct reflection is ${d.low}, which at ${d.tr[d.low]}/100 sits meaningfully lower than your leading attributes. This isn't a permanent ceiling — it's a gap worth addressing. High performers with your archetype who consciously develop this area consistently reach higher and more sustained outcomes than those who don't. Identifying it here is already the most important first step.`,
-  ],
-  close:[
-    d=>`${d.fn}, the conclusion of your Money DNA analysis is this: your profile carries the architecture of someone who builds something significant — not through luck, but through the compounding of deliberate choices, calculated risks, and consistent development of capabilities already present at a high level in your profile. The ${d.arch.n} path is not the easiest trajectory. But it is, for profiles like yours, the most rewarding one available.`,
-    d=>`The overall picture for ${d.fn} is one of strong upward trajectory. Your Wealth Score, trait profile, career alignment, and timing indicators all point in the same direction. The work now is aligning daily decisions with the long-term pattern your Money DNA has already mapped. ${d.arch.n} profiles don't peak early. They build steadily — then compound powerfully and often surprisingly fast.`,
-    d=>`${d.fn}, your Money DNA analysis points to a single clear conclusion: your wealth and success potential exceeds the average profile by a meaningful margin. What consistently separates those who realize that potential from those who don't is rarely talent — it's the willingness to act consistently, precisely, and patiently on what they already know. Your profile already carries what it takes. The rest is execution.`,
+  edge:[
+    d=>`Your edge is ${d.top}. At ${d.tr[d.top]}/100 it's not just a strength — it's a competitive moat. Pair it with ${d.sec} (${d.tr[d.sec]}/100) and you've got the DNA of someone who doesn't just survive high-stakes environments — they thrive in them. Watch your ${d.low} though. At ${d.tr[d.low]}/100 it's the one place where you can leave value on the table without realising it. The gap between good and elite often lives there.`,
+    d=>`${d.fn}, what makes your profile stick out is the ${d.top}–${d.sec} combination at the top. Most people are strong in one. You're above average in both, and they reinforce each other. That's rare and it's bankable. Your ${d.low} score (${d.tr[d.low]}/100) is the honest counterweight — acknowledge it, build around it, and you remove the main friction in your path.`,
+    d=>`The signal is clear, ${d.fn}: ${d.top} at ${d.tr[d.top]}/100 is your unfair advantage. It shapes how you see problems and how quickly you move on them. Back that with your ${d.sec} (${d.tr[d.sec]}/100) and you have a profile that's hard to out-manoeuvre. One honest note: ${d.low} at ${d.tr[d.low]}/100 is where your blind spot tends to live. Knowing it is already half the fix.`,
   ],
 };
-
 function pickT(arr,seed,off){return arr[(Math.abs(seed)+off)%arr.length]}
-
 function buildReport(data){
   const ents=Object.entries(data.traits).sort((a,b)=>b[1]-a[1]);
   const d={fn:data.firstName,arch:data.arch,sc:data.scores,wc:data.wcat,tr:data.traits,cars:data.careers,tl:data.timeline,top:ents[0][0],sec:ents[1][0],trd:ents[2][0],low:ents[ents.length-1][0]};
   const s=hc(data.firstName+data.arch.n+data.dob);
   return[
-    pickT(RP.open,s,0)(d),
-    pickT(RP.wealth,s,1)(d),
-    pickT(RP.success,s,2)(d),
-    pickT(RP.career,s,3)(d),
-    pickT(RP.timeline,s,4)(d),
-    pickT(RP.strengths,s,5)(d),
-    pickT(RP.blind,s,6)(d),
-    pickT(RP.close,s,7)(d),
+    pickT(RP.who,s,0)(d),
+    pickT(RP.timing,s,1)(d),
+    pickT(RP.edge,s,2)(d),
   ];
 }
 
@@ -664,7 +750,36 @@ function buildReport(data){
 // ══════════════════════════════════
 let RESULT=null;
 
-function show(id){document.querySelectorAll('.scr').forEach(s=>s.classList.remove('on'));document.getElementById(id).classList.add('on');window.scrollTo(0,0)}
+function show(id){
+  document.querySelectorAll('.scr').forEach(s=>s.classList.remove('on'));
+  const el=document.getElementById(id);
+  el.classList.add('on');
+  // Only run animations on the loading screen
+  if(id==='s-load'){el.classList.add('animate')}
+  else{document.getElementById('s-load').classList.remove('animate')}
+  window.scrollTo(0,0);
+}
+
+// Progress dots — update as fields are filled
+function updateDots(){
+  const fields=['f-name','f-dob','f-tob','f-place'];
+  let filled=0;
+  fields.forEach((fid,i)=>{
+    const val=document.getElementById(fid).value.trim();
+    const dot=document.getElementById('pd'+i);
+    if(val){dot.classList.remove('active');dot.classList.add('done');filled++}
+    else{dot.classList.remove('done')}
+  });
+  // Set next unfilled dot as active
+  fields.forEach((fid,i)=>{
+    const val=document.getElementById(fid).value.trim();
+    const dot=document.getElementById('pd'+i);
+    if(!val&&!dot.classList.contains('done')){dot.classList.add('active');return}
+  });
+  // Enable button when all filled
+  const btn=document.getElementById('btn-go');
+  btn.disabled=false; // always allow click (validation handles errors)
+}
 
 function validate(){
   let ok=true;
@@ -684,7 +799,6 @@ function startAnalysis(){
   const dob=document.getElementById('f-dob').value;
   const tob=document.getElementById('f-tob').value;
   const place=document.getElementById('f-place').value.trim();
-
   show('s-load');
   runLoading(()=>compute(name,dob,tob,place));
 }
@@ -698,24 +812,18 @@ function runLoading(cb){
   const stepsEl=document.getElementById('load-steps');
   stepsEl.innerHTML=STEPS.map(s=>`<div class="ls"><div class="ls-dot"></div>${s}</div>`).join('');
   const stepEls=stepsEl.querySelectorAll('.ls');
-
   let mi=0,si=0,pct=0;
   msg.textContent=MSGS[0];
-
   const iv=setInterval(()=>{
     mi=(mi+1)%MSGS.length;
     msg.style.opacity='0';
     setTimeout(()=>{msg.textContent=MSGS[mi];msg.style.opacity='1'},300);
   },900);
-
   const piv=setInterval(()=>{
     pct=Math.min(96,pct+mapRange(hc(String(pct)),4,12));
     fill.style.width=pct+'%';
-    if(si<stepEls.length&&pct>si*(100/STEPS.length)){
-      stepEls[si].classList.add('done');si++;
-    }
+    if(si<stepEls.length&&pct>si*(100/STEPS.length)){stepEls[si].classList.add('done');si++}
   },500);
-
   setTimeout(()=>{
     clearInterval(iv);clearInterval(piv);
     fill.style.width='100%';
@@ -737,7 +845,6 @@ function compute(name,dob,tob,place){
   const wcat=wealthCat(scores.ws);
   const timeline=calcTimeline(dob,scores,seed);
   const report=buildReport({firstName,arch,scores,wcat,traits,careers,timeline,dob});
-
   RESULT={name,firstName,dob,nums,traits,arch,careers,scores,wcat,timeline,report,seed};
   renderResults();
   show('s-res');
@@ -750,6 +857,11 @@ function renderResults(){
   document.getElementById('r-hdr').innerHTML=`${R.firstName}'s <span class="gt">Money DNA™</span>`;
   document.getElementById('r-sub').textContent=`Wealth Profile · ${R.firstName} · ${R.dob}`;
 
+  // Quick score hero (top of results)
+  document.getElementById('rh-ws').textContent=R.scores.ws;
+  document.getElementById('rh-ss').textContent=R.scores.ss;
+  document.getElementById('rh-mp').textContent=R.scores.mp+'%';
+
   // Metrics
   document.getElementById('r-wscore').textContent=R.scores.ws;
   document.getElementById('r-wcat').textContent=R.wcat.l;
@@ -758,6 +870,10 @@ function renderResults(){
   document.getElementById('r-sbadge').textContent=R.scores.ss>=80?'Outstanding':R.scores.ss>=65?'Strong':'Solid';
   document.getElementById('r-milpct').textContent=R.scores.mp+'%';
   document.getElementById('r-upct').textContent=R.scores.up+'%';
+
+  // Insights chips
+  const insights=buildInsights(R);
+  document.getElementById('r-insights').innerHTML=insights.map(c=>`<div class="insight-chip ${c.cls}">${c.text}</div>`).join('');
 
   // Archetype desc
   document.getElementById('r-archdesc').innerHTML=`<p><strong style="color:#e8d5a0">${R.arch.n}</strong> &mdash; ${R.arch.d}</p><p>This archetype represents your dominant wealth-creation pattern — the lens through which your strongest traits converge into a unified financial identity and career direction.</p>`;
@@ -768,26 +884,23 @@ function renderResults(){
     document.getElementById('g-ultra').style.width=R.scores.up+'%';
   },200);
 
-  // Traits
+  // Traits — top 3 only
   const sorted=Object.entries(R.traits).sort((a,b)=>b[1]-a[1]);
-  document.getElementById('r-traits').innerHTML=sorted.map(([k,v])=>`
-    <div class="ti">
-      <div class="tn">${k}</div>
+  const top3=sorted.slice(0,3);
+  document.getElementById('r-traits').innerHTML=top3.map(([k,v],i)=>`
+    <div class="ti${i===0?' ti-top':''}">
+      <div class="tn">${['🥇','🥈','🥉'][i]} ${k}</div>
       <div class="ttrack"><div class="tfill" data-w="${v}" style="width:0%"></div></div>
-      <div class="tv">${v}</div>
+      <div class="tv">${v}/100</div>
     </div>`).join('');
   setTimeout(()=>document.querySelectorAll('.tfill').forEach(el=>{el.style.width=el.dataset.w+'%'}),300);
 
   // Numerology
   const NS=[
-    {l:'Life Path',v:R.nums.lifePath},
-    {l:'Expression',v:R.nums.expression},
-    {l:'Soul Urge',v:R.nums.soulUrge},
-    {l:'Personality',v:R.nums.personality},
-    {l:'Birth Day',v:R.nums.birthDay},
-    {l:'Birth Month',v:R.nums.birthMonth},
-    {l:'Birth Year',v:R.nums.birthYear},
-    {l:'Destiny',v:R.nums.destiny},
+    {l:'Life Path',v:R.nums.lifePath},{l:'Expression',v:R.nums.expression},
+    {l:'Soul Urge',v:R.nums.soulUrge},{l:'Personality',v:R.nums.personality},
+    {l:'Birth Day',v:R.nums.birthDay},{l:'Birth Month',v:R.nums.birthMonth},
+    {l:'Birth Year',v:R.nums.birthYear},{l:'Destiny',v:R.nums.destiny},
   ];
   document.getElementById('r-nums').innerHTML=NS.map(n=>{
     const master=n.v===11||n.v===22||n.v===33;
@@ -801,14 +914,16 @@ function renderResults(){
       <div class="cm">${Math.min(99,Math.round(c.score/3))}%</div>
     </div>`).join('');
 
-  // Timeline
-  document.getElementById('r-timeline').innerHTML=R.timeline.phases.map(p=>`
-    <div class="tli">
+  // Timeline — highlight current phase
+  document.getElementById('r-timeline').innerHTML=R.timeline.phases.map(p=>{
+    const isCurrent=R.timeline.currentAge>=p.startAge&&R.timeline.currentAge<=p.endAge;
+    return`<div class="tli${isCurrent?' current-phase':''}">
       <div class="tldot">${p.icon}</div>
       <div class="tla">Age ${p.age}</div>
       <div class="tlph">${p.ph}</div>
       <div class="tld">${p.d}</div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 
   // Mil age
   document.getElementById('r-milage').textContent='Age '+R.timeline.milRange;
@@ -816,8 +931,7 @@ function renderResults(){
   // Report
   document.getElementById('r-report').innerHTML=R.report.map(p=>`<p>${p}</p>`).join('');
 
-  // Share card pre-populate
-  const ents=Object.entries(R.traits).sort((a,b)=>b[1]-a[1]);
+  // Share card
   document.getElementById('sh-name').textContent=R.firstName;
   document.getElementById('sh-arch').textContent=R.arch.n;
   document.getElementById('sh-ws').textContent=R.scores.ws;
@@ -825,10 +939,59 @@ function renderResults(){
   document.getElementById('sh-mp').textContent=R.scores.mp+'%';
   document.getElementById('sh-up').textContent=R.scores.up+'%';
   document.getElementById('sh-path').innerHTML=`Top Path: <strong>${R.careers[0].n}</strong><br>Breakthrough Age: <strong>${R.timeline.milRange}</strong><br>Wealth Tier: <strong>${R.wcat.l}</strong>`;
+
+  // Show native share button if supported
+  if(navigator.share){document.getElementById('sh-native-btn').style.display='block'}
 }
 
+// ══════════════════════════════════
+//  SHARE & COPY ACTIONS
+// ══════════════════════════════════
 function openShare(){document.getElementById('sh-ov').classList.add('on')}
 function closeShare(){document.getElementById('sh-ov').classList.remove('on')}
+
+function buildShareText(){
+  if(!RESULT)return '';
+  const R=RESULT;
+  return`💎 My Money DNA™ Results\n\n🧬 ${R.firstName} — ${R.arch.n}\n\n📊 Wealth Score: ${R.scores.ws}/100 (${R.wcat.l})\n🎯 Success Potential: ${R.scores.ss}/100\n💰 Millionaire Probability: ${R.scores.mp}%\n🚀 Ultra-Wealth Potential: ${R.scores.up}%\n\n⭐ Top Career Path: ${R.careers[0].n}\n⚡ Wealth Breakthrough Age: ${R.timeline.milRange}\n\nDiscover yours at moneydna.app\n(Entertainment only — not financial advice)`;
+}
+
+function copyShareText(){
+  const text=buildShareText();
+  navigator.clipboard.writeText(text).then(()=>{
+    const btn=document.getElementById('sh-copy-btn');
+    btn.textContent='✅ Copied!';
+    btn.classList.add('copied');
+    setTimeout(()=>{btn.textContent='📋 Copy Results to Share';btn.classList.remove('copied')},2500);
+  }).catch(()=>{
+    // Fallback
+    const ta=document.createElement('textarea');
+    ta.value=text;ta.style.position='fixed';ta.style.opacity='0';
+    document.body.appendChild(ta);ta.focus();ta.select();
+    document.execCommand('copy');document.body.removeChild(ta);
+    showToast('Results copied!');
+  });
+}
+
+function copyResults(){
+  copyShareText();
+  showToast('Results summary copied to clipboard!');
+}
+
+function nativeShare(){
+  if(!RESULT)return;
+  navigator.share({
+    title:'My Money DNA™ Results',
+    text:buildShareText(),
+  }).catch(()=>{});
+}
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2800);
+}
 
 function restart(){
   RESULT=null;
@@ -837,6 +1000,11 @@ function restart(){
   document.getElementById('f-tob').value='';
   document.getElementById('f-place').value='';
   document.getElementById('prog-fill').style.width='0%';
+  // Reset progress dots
+  ['pd0','pd1','pd2','pd3'].forEach((id,i)=>{
+    const el=document.getElementById(id);
+    el.className='pd'+(i===0?' active':'');
+  });
   show('s-form');
 }
 
