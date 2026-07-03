@@ -163,6 +163,7 @@ html,body{min-height:100vh;background:var(--bg);color:var(--txt);font-family:-ap
 .nc{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:13px 8px;text-align:center}
 .nc.master{border-color:rgba(201,168,76,.35);background:rgba(201,168,76,.06)}
 .nv{font-size:26px;font-weight:900;color:var(--gold);line-height:1;margin-bottom:3px}
+.nv-sm{font-size:13px;line-height:1.25;padding-top:6px;min-height:26px}
 .nlbl{font-size:9px;color:var(--muted);font-weight:500;letter-spacing:.04em}
 
 /* CAREERS */
@@ -297,7 +298,7 @@ html,body{min-height:100vh;background:var(--bg);color:var(--txt);font-family:-ap
     <div class="fg">
       <label>Time of Birth</label>
       <input type="time" id="f-tob" onchange="updateDots()">
-      <div class="field-hint">Shapes your wealth timing cycles and opportunity windows.</div>
+      <div class="field-hint">Sets your lagna (ascendant) — it shifts 1° every ~4 minutes, so use your birth-certificate time if possible.</div>
       <div class="err-msg" id="e-tob">Please enter your time of birth.</div>
     </div>
     <div class="fg">
@@ -307,8 +308,14 @@ html,body{min-height:100vh;background:var(--bg);color:var(--txt);font-family:-ap
         <div class="ac-list" id="ac-list"></div>
       </div>
       <input type="hidden" id="f-lat"><input type="hidden" id="f-lon">
-      <div class="field-hint">Geographic patterns affect your career alignment and archetype.</div>
+      <div class="field-hint">Your coordinates anchor the lagna and house positions of your chart.</div>
       <div class="err-msg" id="e-place">Please enter your birth place.</div>
+    </div>
+    <div class="fg">
+      <label>UTC Offset at Birth</label>
+      <input type="number" id="f-utcoff" step="0.25" min="-12" max="14" placeholder="e.g. 5.5 for India">
+      <div class="field-hint">Auto-filled from your birth city. Edit if you were born under daylight-saving time or a different historical zone.</div>
+      <div class="err-msg" id="e-utcoff">Please enter a UTC offset between −12 and +14.</div>
     </div>
     <button class="btn-go" id="btn-go" onclick="startAnalysis()">Analyze My Money DNA →</button>
     <div class="trust-row">
@@ -419,7 +426,7 @@ html,body{min-height:100vh;background:var(--bg);color:var(--txt);font-family:-ap
     <div class="mil-card">
       <div class="mil-label">Most Likely Window</div>
       <div class="mil-age" id="r-milage"></div>
-      <div class="mil-sub">Based on your life path, trait profile &amp; timing indicators</div>
+      <div class="mil-sub" id="r-milsub">Based on your Vimshottari dasha timeline</div>
     </div>
   </div>
 
@@ -436,7 +443,7 @@ html,body{min-height:100vh;background:var(--bg);color:var(--txt);font-family:-ap
     <button class="copy-link-btn" onclick="copyResults()" id="copy-link-btn">
       <span>📋</span><span>Copy your results summary</span>
     </button>
-    <div class="disc">This experience is generated using entertainment-focused pattern analysis and deterministic calculations. It should not be considered financial, investment, legal, career, or life advice. Results are for entertainment purposes only.</div>
+    <div class="disc">This experience is generated using traditional Vedic astrology (sidereal positions, Lahiri ayanamsa, Vimshottari dasha) and numerology, computed deterministically from your birth details. Astronomical positions use a compact ephemeris (≈0.1° accuracy) and an estimated time-zone offset; ascendant-sensitive results may shift if your recorded birth time or historical UTC offset is imprecise. It should not be considered financial, investment, legal, career, or life advice. Results are for entertainment purposes only.</div>
   </div>
 </div>
 
@@ -470,11 +477,202 @@ html,body{min-height:100vh;background:var(--bg);color:var(--txt);font-family:-ap
 
 <script>
 // ══════════════════════════════════
-//  UTILITIES
+//  UTILITIES (hc/mapRange only drive the cosmetic loading bar — never results)
 // ══════════════════════════════════
 function hc(s){let h=5381;for(let i=0;i<s.length;i++){h=((h<<5)+h)+s.charCodeAt(i);h=h&h}return Math.abs(h)}
-function lcg(seed){let s=seed>>>0;return()=>{s=(Math.imul(1664525,s)+1013904223)>>>0;return s/4294967296}}
 function mapRange(v,lo,hi){return lo+((v%(hi-lo+1)+hi-lo+1)%(hi-lo+1))}
+
+// ══════════════════════════════════
+//  ASTRONOMY CORE
+//  Compact ephemeris after Paul Schlyter, "How to compute planetary positions"
+//  (mean Keplerian elements + major perturbation terms). Accuracy ~1-2 arc-min
+//  for Sun/Moon/planets in 1930-2010 — far inside the 3°20' pada bins used here.
+// ══════════════════════════════════
+const D2R=Math.PI/180;
+function rev(x){x=x%360;return x<0?x+360:x}
+function dsin(x){return Math.sin(x*D2R)}
+function dcos(x){return Math.cos(x*D2R)}
+function datan2(y,x){return rev(Math.atan2(y,x)/D2R)}
+
+// Gregorian calendar date + UT hours -> Julian Day (Meeus ch.7)
+function julianDay(y,m,dy,utHours){
+  if(m<=2){y-=1;m+=12}
+  const A=Math.floor(y/100),B=2-A+Math.floor(A/4);
+  return Math.floor(365.25*(y+4716))+Math.floor(30.6001*(m+1))+dy+B-1524.5+utHours/24;
+}
+
+// Osculating elements at Schlyter day number d = JD - 2451543.5
+function planetElements(d){
+  return{
+    Sun:    {N:0,i:0,w:rev(282.9404+4.70935e-5*d),a:1.0,e:0.016709-1.151e-9*d,M:rev(356.0470+0.9856002585*d)},
+    Moon:   {N:rev(125.1228-0.0529538083*d),i:5.1454,w:rev(318.0634+0.1643573223*d),a:60.2666,e:0.054900,M:rev(115.3654+13.0649929509*d)},
+    Mercury:{N:rev(48.3313+3.24587e-5*d),i:7.0047+5.00e-8*d,w:rev(29.1241+1.01444e-5*d),a:0.387098,e:0.205635+5.59e-10*d,M:rev(168.6562+4.0923344368*d)},
+    Venus:  {N:rev(76.6799+2.46590e-5*d),i:3.3946+2.75e-8*d,w:rev(54.8910+1.38374e-5*d),a:0.723330,e:0.006773-1.302e-9*d,M:rev(48.0052+1.6021302244*d)},
+    Mars:   {N:rev(49.5574+2.11081e-5*d),i:1.8497-1.78e-8*d,w:rev(286.5016+2.92961e-5*d),a:1.523688,e:0.093405+2.516e-9*d,M:rev(18.6021+0.5240207766*d)},
+    Jupiter:{N:rev(100.4542+2.76854e-5*d),i:1.3030-1.557e-7*d,w:rev(273.8777+1.64505e-5*d),a:5.20256,e:0.048498+4.469e-9*d,M:rev(19.8950+0.0830853001*d)},
+    Saturn: {N:rev(113.6634+2.38980e-5*d),i:2.4886-1.081e-7*d,w:rev(339.3939+2.97661e-5*d),a:9.55475,e:0.055546-9.499e-9*d,M:rev(316.9670+0.0334442282*d)},
+  };
+}
+
+// Kepler's equation (degrees), Newton iteration
+function keplerE(M,e){
+  let E=M+e/D2R*dsin(M)*(1+e*dcos(M));
+  for(let k=0;k<8;k++){E=E-(E-e/D2R*dsin(E)-M)/(1-e*dcos(E))}
+  return E;
+}
+
+// Elements -> position in the body's own ecliptic frame
+// (heliocentric for planets, geocentric for Sun & Moon)
+function bodyVec(el){
+  const E=keplerE(el.M,el.e);
+  const xv=el.a*(dcos(E)-el.e), yv=el.a*Math.sqrt(1-el.e*el.e)*dsin(E);
+  const v=datan2(yv,xv), r=Math.sqrt(xv*xv+yv*yv);
+  const xh=r*(dcos(el.N)*dcos(v+el.w)-dsin(el.N)*dsin(v+el.w)*dcos(el.i));
+  const yh=r*(dsin(el.N)*dcos(v+el.w)+dcos(el.N)*dsin(v+el.w)*dcos(el.i));
+  const zh=r*dsin(v+el.w)*dsin(el.i);
+  return{x:xh,y:yh,z:zh,r,lon:datan2(yh,xh),lat:Math.atan2(zh,Math.sqrt(xh*xh+yh*yh))/D2R};
+}
+
+// Geocentric TROPICAL ecliptic longitudes of the nine grahas
+function tropicalLongitudes(jd){
+  const d=jd-2451543.5,E=planetElements(d);
+  // Sun (its "orbit" here is Earth's, so the result is already geocentric)
+  const sun=bodyVec(E.Sun);
+  const xs=sun.r*dcos(sun.lon), ys=sun.r*dsin(sun.lon);
+  // Moon: geocentric + Schlyter's 12 principal longitude perturbations
+  const mv=bodyVec(E.Moon);
+  const Ms=E.Sun.M, Mm=E.Moon.M;
+  const Ls=rev(Ms+E.Sun.w), Lm=rev(Mm+E.Moon.w+E.Moon.N);
+  const Dd=rev(Lm-Ls), F=rev(Lm-E.Moon.N);
+  const moonLon=mv.lon
+    -1.274*dsin(Mm-2*Dd)      // Evection
+    +0.658*dsin(2*Dd)         // Variation
+    -0.186*dsin(Ms)           // Yearly equation
+    -0.059*dsin(2*Mm-2*Dd)
+    -0.057*dsin(Mm-2*Dd+Ms)
+    +0.053*dsin(Mm+2*Dd)
+    +0.046*dsin(2*Dd-Ms)
+    +0.041*dsin(Mm-Ms)
+    -0.035*dsin(Dd)           // Parallactic equation
+    -0.031*dsin(Mm+Ms)
+    -0.015*dsin(2*F-2*Dd)
+    +0.011*dsin(Mm-4*Dd);
+  const out={Sun:rev(sun.lon),Moon:rev(moonLon)};
+  const Mj=E.Jupiter.M,Msa=E.Saturn.M;
+  ['Mercury','Venus','Mars','Jupiter','Saturn'].forEach(p=>{
+    const h=bodyVec(E[p]);
+    let corr=0;
+    if(p==='Jupiter')corr=-0.332*dsin(2*Mj-5*Msa-67.6)-0.056*dsin(2*Mj-2*Msa+21)
+      +0.042*dsin(3*Mj-5*Msa+21)-0.036*dsin(Mj-2*Msa)+0.022*dcos(Mj-Msa)
+      +0.023*dsin(2*Mj-3*Msa+52)-0.016*dsin(Mj-5*Msa-69);
+    if(p==='Saturn')corr=0.812*dsin(2*Mj-5*Msa-67.6)-0.229*dcos(2*Mj-4*Msa-2)
+      +0.119*dsin(Mj-2*Msa-3)+0.046*dsin(2*Mj-6*Msa-69)+0.014*dsin(Mj-3*Msa+32);
+    const lonH=rev(h.lon+corr);
+    const xh=h.r*dcos(lonH)*dcos(h.lat), yh=h.r*dsin(lonH)*dcos(h.lat);
+    out[p]=datan2(yh+ys,xh+xs); // heliocentric -> geocentric
+  });
+  // Mean lunar node = Rahu (mean vs true node differs ≤1.7°; accepted here —
+  // Rahu never decides the lagna or Moon-derived results)
+  out.Rahu=rev(E.Moon.N);
+  out.Ketu=rev(E.Moon.N+180);
+  return out;
+}
+
+// Lahiri (Chitrapaksha) ayanamsa, quadratic fit — within ~0.01° of the official
+// value across 1930-2010. T = Julian centuries since 1900 Jan 0.5
+function lahiriAyanamsa(jd){
+  const T=(jd-2415020.5)/36525;
+  return 22.460148+1.396042*T+3.08e-4*T*T;
+}
+function siderealLongitudes(jd){
+  const trop=tropicalLongitudes(jd),ay=lahiriAyanamsa(jd),out={};
+  for(const p in trop)out[p]=rev(trop[p]-ay);
+  return out;
+}
+
+// Sidereal LAGNA (ascendant). LST via Schlyter's GMST0 = Ls + 180° identity;
+// tropical Asc from the standard rising-point formula, then minus ayanamsa.
+function ascendant(jd,lat,lon){
+  const d=jd-2451543.5,E=planetElements(d);
+  const Ls=rev(E.Sun.M+E.Sun.w);
+  const frac=jd+0.5-Math.floor(jd+0.5); // fraction of UT day since midnight
+  const lstDeg=rev(rev(Ls+180)+frac*360+lon); // RAMC in degrees
+  const eps=23.4393-3.563e-7*d;
+  const asc=datan2(dcos(lstDeg),-(dsin(lstDeg)*dcos(eps)+Math.tan(lat*D2R)*dsin(eps)));
+  return rev(asc-lahiriAyanamsa(jd)); // sidereal
+}
+
+// ══════════════════════════════════
+//  JYOTISH REFERENCE TABLES
+// ══════════════════════════════════
+const RASHI=['Aries','Taurus','Gemini','Cancer','Leo','Virgo','Libra','Scorpio','Sagittarius','Capricorn','Aquarius','Pisces'];
+const NAKSHATRAS=['Ashwini','Bharani','Krittika','Rohini','Mrigashira','Ardra','Punarvasu','Pushya','Ashlesha','Magha','Purva Phalguni','Uttara Phalguni','Hasta','Chitra','Swati','Vishakha','Anuradha','Jyeshtha','Mula','Purva Ashadha','Uttara Ashadha','Shravana','Dhanishta','Shatabhisha','Purva Bhadrapada','Uttara Bhadrapada','Revati'];
+const DASHA_SEQ=['Ketu','Venus','Sun','Moon','Mars','Rahu','Jupiter','Saturn','Mercury'];
+const DASHA_YEARS={Ketu:7,Venus:20,Sun:6,Moon:10,Mars:7,Rahu:18,Jupiter:16,Saturn:19,Mercury:17}; // sums to 120
+const GRAHAS=['Sun','Moon','Mars','Mercury','Jupiter','Venus','Saturn']; // classical seven
+const SIGN_LORDS=['Mars','Venus','Mercury','Moon','Sun','Mercury','Venus','Mars','Jupiter','Saturn','Saturn','Jupiter'];
+const EXALT={Sun:0,Moon:1,Mars:9,Mercury:5,Jupiter:3,Venus:11,Saturn:6,Rahu:1,Ketu:7};
+const OWN_SIGNS={Sun:[4],Moon:[3],Mars:[0,7],Mercury:[2,5],Jupiter:[8,11],Venus:[1,6],Saturn:[9,10],Rahu:[],Ketu:[]};
+const NAK_SPAN=360/27, PADA_SPAN=NAK_SPAN/4;
+function signOf(lon){return Math.floor(rev(lon)/30)}
+function nakshatraOf(lon){
+  const L=rev(lon),idx=Math.floor(L/NAK_SPAN);
+  return{index:idx,name:NAKSHATRAS[idx],pada:Math.floor((L%NAK_SPAN)/PADA_SPAN)+1,
+    lord:DASHA_SEQ[idx%9],fracElapsed:(L%NAK_SPAN)/NAK_SPAN};
+}
+
+// ══════════════════════════════════
+//  BIRTH CHART (single source of truth)
+// ══════════════════════════════════
+function buildChart(dob,tob,lat,lon,utcOff){
+  const[Y,Mo,Dy]=dob.split('-').map(Number);
+  const[hh,mm]=tob.split(':').map(Number);
+  const utHours=hh+mm/60-utcOff;
+  const jd=julianDay(Y,Mo,Dy,utHours);
+  const sid=siderealLongitudes(jd);
+  const ascLon=ascendant(jd,lat,lon);
+  const ascSign=signOf(ascLon);
+  const positions={};
+  for(const p in sid){
+    const s=signOf(sid[p]);
+    positions[p]={lon:sid[p],sign:s,nak:nakshatraOf(sid[p]),
+      house:((s-ascSign+12)%12)+1};
+  }
+  return{jd,positions,asc:{lon:ascLon,sign:ascSign},moonNak:positions.Moon.nak};
+}
+
+// ══════════════════════════════════
+//  VIMSHOTTARI DASHA ENGINE
+// ══════════════════════════════════
+function vimshottari(moonNak){
+  const startIdx=moonNak.index%9;
+  const dashas=[];
+  const balance=(1-moonNak.fracElapsed)*DASHA_YEARS[DASHA_SEQ[startIdx]];
+  dashas.push({lord:DASHA_SEQ[startIdx],startAge:0,endAge:balance});
+  let age=balance;
+  for(let k=1;age<100;k++){
+    const lord=DASHA_SEQ[(startIdx+k)%9];
+    dashas.push({lord,startAge:age,endAge:age+DASHA_YEARS[lord]});
+    age+=DASHA_YEARS[lord];
+  }
+  return dashas;
+}
+function antardashas(maha){
+  const full=DASHA_YEARS[maha.lord]; // first maha may be a truncated birth balance
+  const startIdx=DASHA_SEQ.indexOf(maha.lord);
+  const subs=[];
+  // Lay out the full-length maha sub-sequence, then clip to the lived window
+  let t=maha.endAge-full;
+  for(let k=0;k<9;k++){
+    const lord=DASHA_SEQ[(startIdx+k)%9];
+    const dur=full*DASHA_YEARS[lord]/120;
+    const s=Math.max(t,maha.startAge),e=Math.min(t+dur,maha.endAge);
+    if(e>s)subs.push({lord,startAge:s,endAge:e});
+    t+=dur;
+  }
+  return subs;
+}
+function currentDasha(dashas,age){return dashas.find(d=>age>=d.startAge&&age<d.endAge)||dashas[dashas.length-1]}
 
 // ══════════════════════════════════
 //  NUMEROLOGY
@@ -490,102 +688,221 @@ function reduceNum(n,master=true){
   return n;
 }
 const PYT={a:1,b:2,c:3,d:4,e:5,f:6,g:7,h:8,i:9,j:1,k:2,l:3,m:4,n:5,o:6,p:7,q:8,r:9,s:1,t:2,u:3,v:4,w:5,x:6,y:7,z:8};
+// Chaldean values (traditional Vedic-aligned system; 9 is sacred and unassigned)
+const CHA={a:1,b:2,c:3,d:4,e:5,f:8,g:3,h:5,i:1,j:1,k:2,l:3,m:4,n:5,o:7,p:8,q:1,r:2,s:3,t:4,u:6,v:6,w:6,x:5,y:1,z:7};
 const VOWELS=new Set(['a','e','i','o','u']);
-function nameDigits(name,fn){return name.toLowerCase().replace(/[^a-z]/g,'').split('').filter(fn).reduce((s,c)=>s+(PYT[c]||0),0)}
+// Graha rulers of the nine root numbers (Vedic numerology)
+const NUM_RULERS={1:'Sun',2:'Moon',3:'Jupiter',4:'Rahu',5:'Mercury',6:'Venus',7:'Ketu',8:'Saturn',9:'Mars'};
+function nameDigits(name,fn,map){return name.toLowerCase().replace(/[^a-z]/g,'').split('').filter(fn).reduce((s,c)=>s+(map[c]||0),0)}
+function digitSum(n){let s=0;while(n>0){s+=n%10;n=Math.floor(n/10)}return s}
 function calcNums(name,dob){
-  const pts=dob.split('-');
-  const yr=pts[0].split('').reduce((s,d)=>s+parseInt(d),0);
-  const mo=parseInt(pts[1]);
-  const dy=parseInt(pts[2]);
-  const lp=reduceNum(reduceNum(mo,false)+reduceNum(dy,false)+yr);
-  const exp=reduceNum(nameDigits(name,()=>true)||1);
-  const soul=reduceNum(nameDigits(name,c=>VOWELS.has(c))||1);
-  const pers=reduceNum(nameDigits(name,c=>!VOWELS.has(c))||1);
+  const[yrN,mo,dy]=dob.split('-').map(Number);
+  // Pythagorean Life Path: reduce month, day and year EACH first (master-aware,
+  // so day 29 -> 11 and month/day 11/22 survive), then reduce the sum.
+  const lp=reduceNum(reduceNum(mo)+reduceNum(dy)+reduceNum(digitSum(yrN)));
+  const exp=reduceNum(nameDigits(name,()=>true,PYT)||1);
+  const soul=reduceNum(nameDigits(name,c=>VOWELS.has(c),PYT)||1);
+  const pers=reduceNum(nameDigits(name,c=>!VOWELS.has(c),PYT)||1);
   const bday=reduceNum(dy);
-  const bmon=mo;
-  const byr=reduceNum(yr);
-  const dest=reduceNum((lp+exp+soul)%33||1);
-  return{lifePath:lp,expression:exp,soulUrge:soul,personality:pers,birthDay:bday,birthMonth:bmon,birthYear:byr,destiny:dest};
+  // Vedic numerology: Moolank (psychic no.) and Bhagyank (destiny no.) never
+  // keep master numbers — they always reduce to a 1-9 graha number.
+  const moolank=reduceNum(dy,false);
+  const bhagyank=reduceNum(digitSum(dy)+digitSum(mo)+digitSum(yrN),false);
+  const chaldeanCompound=nameDigits(name,()=>true,CHA)||1;
+  const chaldean=reduceNum(chaldeanCompound,false);
+  return{lifePath:lp,expression:exp,soulUrge:soul,personality:pers,birthDay:bday,
+    moolank,bhagyank,chaldean,chaldeanCompound,
+    moolankRuler:NUM_RULERS[moolank],bhagyankRuler:NUM_RULERS[bhagyank],chaldeanRuler:NUM_RULERS[chaldean]};
 }
 
 // ══════════════════════════════════
-//  TRAIT ENGINE
+//  WEALTH ANALYSIS — dignity, strength, house lords, yogas, significators
+// ══════════════════════════════════
+function dignity(planet,sign){
+  if(EXALT[planet]===sign)return{label:'exalted',mult:1.5};
+  if((OWN_SIGNS[planet]||[]).includes(sign))return{label:'in own sign',mult:1.25};
+  if(rev0(EXALT[planet]+6)===sign)return{label:'debilitated',mult:0.6};
+  return{label:'neutral',mult:1.0};
+}
+function rev0(s){return((s%12)+12)%12}
+function houseLord(chart,n){return SIGN_LORDS[rev0(chart.asc.sign+n-1)]}
+// 0-100 shadbala-inspired strength: dignity + bhava placement + nakshatra tie
+function planetStrength(chart,p){
+  const pos=chart.positions[p];
+  let v=50;
+  const dg=dignity(p,pos.sign);
+  if(dg.label==='exalted')v+=25;
+  else if(dg.label==='in own sign')v+=15;
+  else if(dg.label==='debilitated')v-=20;
+  if([1,4,7,10].includes(pos.house))v+=10;       // kendra
+  if([5,9].includes(pos.house))v+=12;            // trikona
+  if([6,8,12].includes(pos.house))v-=12;         // dusthana
+  if([2,11].includes(pos.house))v+=8;            // wealth bhavas
+  if(chart.moonNak.lord===p)v+=5;                // rules the janma nakshatra
+  return Math.min(100,Math.max(5,v));
+}
+// Classical wealth combinations, each {name, desc, weight, planets[]}
+function detectYogas(chart){
+  const yogas=[];
+  const L=n=>houseLord(chart,n);
+  const H=p=>chart.positions[p].house;
+  const S=p=>chart.positions[p].sign;
+  const l1=L(1),l2=L(2),l5=L(5),l9=L(9),l11=L(11);
+  if(H(l2)===11)yogas.push({name:'Dhana Yoga (2nd lord in 11th)',desc:`${l2}, lord of your 2nd house of wealth, sits in the 11th house of gains`,weight:3,planets:[l2]});
+  if(H(l11)===2)yogas.push({name:'Dhana Yoga (11th lord in 2nd)',desc:`${l11}, lord of your 11th house of gains, sits in the 2nd house of wealth`,weight:3,planets:[l11]});
+  if(l2!==l11&&S(l2)===S(l11))yogas.push({name:'Dhana Yoga (wealth lords conjunct)',desc:`Your 2nd and 11th lords ${l2} and ${l11} join in ${RASHI[S(l2)]}`,weight:3,planets:[l2,l11]});
+  if([2,11].includes(H(l1)))yogas.push({name:'Lagna-Dhana Yoga',desc:`Your lagna lord ${l1} occupies a wealth house`,weight:2,planets:[l1]});
+  else if(l1!==l2&&S(l1)===S(l2))yogas.push({name:'Lagna-Dhana Yoga',desc:`Your lagna lord ${l1} joins the 2nd lord ${l2}`,weight:2,planets:[l1,l2]});
+  else if(l1!==l11&&S(l1)===S(l11))yogas.push({name:'Lagna-Dhana Yoga',desc:`Your lagna lord ${l1} joins the 11th lord ${l11}`,weight:2,planets:[l1,l11]});
+  if(l5!==l9&&(S(l5)===S(l9)||(H(l5)===9&&H(l9)===5)))yogas.push({name:'Lakshmi-Narayana Yoga',desc:`Your 5th and 9th lords ${l5} and ${l9} combine — the classic fortune axis`,weight:2,planets:[l5,l9]});
+  const d9=dignity(l9,S(l9));
+  if((d9.label==='exalted'||d9.label==='in own sign')&&[1,4,5,7,9,10].includes(H(l9)))
+    yogas.push({name:'Lakshmi Yoga',desc:`Your 9th lord ${l9} is ${d9.label} in a kendra/trikona — a signature of lasting prosperity`,weight:3,planets:[l9]});
+  const jupFromMoon=rev0(chart.positions.Jupiter.sign-chart.positions.Moon.sign);
+  if([0,3,6,9].includes(jupFromMoon))yogas.push({name:'Gajakesari Yoga',desc:'Jupiter stands in a kendra from your Moon — wisdom, reputation and durable wealth',weight:2,planets:['Jupiter','Moon']});
+  if([2,5,11].includes(H('Jupiter')))yogas.push({name:'Guru-Dhana Placement',desc:`Jupiter, the great benefic, blesses your ${ordinal(H('Jupiter'))} house`,weight:2,planets:['Jupiter']});
+  const dv=dignity('Venus',S('Venus'));
+  if((dv.label==='exalted'||dv.label==='in own sign')&&[2,4].includes(H('Venus')))
+    yogas.push({name:'Venus Luxury Placement',desc:`Venus ${dv.label} in your ${ordinal(H('Venus'))} house — comfort and asset accumulation`,weight:2,planets:['Venus']});
+  if(S('Moon')===S('Mars'))yogas.push({name:'Chandra-Mangala Yoga',desc:'Moon and Mars conjunct — an aggressive earning drive',weight:1,planets:['Moon','Mars']});
+  // Cautions (negative weight) — honesty over flattery
+  [l2,l11].forEach((lp,i)=>{
+    const dl=dignity(lp,S(lp));
+    if(dl.label==='debilitated')yogas.push({name:`${i===0?'2nd':'11th'} lord debilitated`,desc:`${lp} is debilitated — wealth needs conscious effort in its periods`,weight:-2,planets:[lp]});
+    else if([6,8,12].includes(H(lp)))yogas.push({name:`${i===0?'2nd':'11th'} lord in dusthana`,desc:`${lp} sits in house ${H(lp)} — gains arrive after obstacles`,weight:-2,planets:[lp]});
+  });
+  return yogas;
+}
+// Per-planet wealth significator score — drives the millionaire window
+function ordinal(n){return n+(n===1?'st':n===2?'nd':n===3?'rd':'th')}
+function wealthSignificatorScores(chart,yogas){
+  const scores=[];
+  DASHA_SEQ.forEach(p=>{
+    const pos=chart.positions[p];
+    let v=0;const reasons=[];
+    for(const[hn,pts]of[[2,10],[11,10],[9,8],[1,6],[5,6]]){
+      if(houseLord(chart,hn)===p){v+=pts;reasons.push(`lord of your ${ordinal(hn)} house`)}
+    }
+    if([2,11].includes(pos.house)){v+=8;reasons.push(`placed in your ${ordinal(pos.house)} house of ${pos.house===2?'wealth':'gains'}`)}
+    else if([9,10].includes(pos.house)){v+=6;reasons.push(`placed in your ${ordinal(pos.house)} house`)}
+    const dg=dignity(p,pos.sign);
+    v*=dg.mult;
+    if(dg.label!=='neutral')reasons.push(`${dg.label} in ${RASHI[pos.sign]}`);
+    yogas.filter(y=>y.weight>0&&y.planets.includes(p)).forEach(y=>{v+=6;reasons.push(`participates in ${y.name}`)});
+    if(p==='Jupiter'||p==='Venus'){v+=4;reasons.push('natural benefic of wealth')}
+    if(p==='Rahu')v*=0.8;
+    if(p==='Ketu')v*=0.4;
+    scores.push({planet:p,score:Math.round(v*10)/10,reasons});
+  });
+  return scores.sort((a,b)=>b.score-a.score||DASHA_SEQ.indexOf(a.planet)-DASHA_SEQ.indexOf(b.planet));
+}
+
+// ══════════════════════════════════
+//  TRAIT ENGINE — weighted graha strengths, no randomness
 // ══════════════════════════════════
 const TNAMES=['Leadership','Discipline','Creativity','Innovation','Risk Tolerance','Persistence','Communication','Adaptability','Strategic Thinking','Execution Ability','Independence','Ambition','Opportunity Recognition','Long-Term Thinking','Wealth Building','Influence','Learning Ability','Resilience','Vision','Analytical Thinking'];
-function calcTraits(seed,nums,timeMin,placeH){
-  const rng=lcg(seed);
+// Each trait blends the strengths of its karaka (significator) grahas.
+// '1L','2L','10L','11L' = the strength of that house's lord in this chart.
+const TRAIT_SOURCES={
+  'Leadership':[['Sun',.5],['Mars',.3],['1L',.2]],
+  'Discipline':[['Saturn',.7],['Sun',.3]],
+  'Creativity':[['Venus',.5],['Moon',.3],['Mercury',.2]],
+  'Innovation':[['Rahu',.4],['Mercury',.4],['Venus',.2]],
+  'Risk Tolerance':[['Mars',.5],['Rahu',.5]],
+  'Persistence':[['Saturn',.6],['Mars',.4]],
+  'Communication':[['Mercury',.7],['Venus',.3]],
+  'Adaptability':[['Moon',.5],['Mercury',.5]],
+  'Strategic Thinking':[['Saturn',.4],['Mercury',.4],['Jupiter',.2]],
+  'Execution Ability':[['Mars',.4],['Saturn',.4],['10L',.2]],
+  'Independence':[['Sun',.5],['Ketu',.3],['Mars',.2]],
+  'Ambition':[['Rahu',.4],['Sun',.3],['Saturn',.3]],
+  'Opportunity Recognition':[['Mercury',.4],['Rahu',.3],['Jupiter',.3]],
+  'Long-Term Thinking':[['Saturn',.5],['Jupiter',.5]],
+  'Wealth Building':[['2L',.4],['11L',.4],['Jupiter',.2]],
+  'Influence':[['Venus',.4],['Sun',.3],['Jupiter',.3]],
+  'Learning Ability':[['Mercury',.5],['Jupiter',.5]],
+  'Resilience':[['Saturn',.4],['Mars',.3],['Moon',.3]],
+  'Vision':[['Jupiter',.5],['Sun',.3],['Ketu',.2]],
+  'Analytical Thinking':[['Mercury',.7],['Saturn',.3]],
+};
+// Flagship trait of each root number's ruling graha (Vedic numerology accent)
+const MOOLANK_TRAIT={1:'Leadership',2:'Adaptability',3:'Vision',4:'Innovation',5:'Communication',6:'Creativity',7:'Independence',8:'Discipline',9:'Risk Tolerance'};
+const LP_BOOSTS={1:'Leadership',2:'Adaptability',3:'Creativity',4:'Execution Ability',5:'Risk Tolerance',6:'Communication',7:'Analytical Thinking',8:'Wealth Building',9:'Vision',11:'Influence',22:'Strategic Thinking',33:'Creativity'};
+function calcTraits(chart,strengths,nums){
+  const lordKeys={'1L':houseLord(chart,1),'2L':houseLord(chart,2),'10L':houseLord(chart,10),'11L':houseLord(chart,11)};
   const t={};
-  const lpBoosts={1:'Leadership',2:'Adaptability',3:'Creativity',4:'Execution Ability',5:'Risk Tolerance',6:'Communication',7:'Analytical Thinking',8:'Wealth Building',9:'Vision',11:'Influence',22:'Strategic Thinking',33:'Creativity'};
-  const lpTrait=lpBoosts[nums.lifePath]||null;
-  const timeRatio=timeMin/1439;
-  const placeRatio=(placeH%997)/997;
-  TNAMES.forEach((name,i)=>{
-    let v=rng()*46+34;
-    v+=(nums.lifePath/33)*9;
-    v+=(nums.expression/9)*5;
-    v+=(nums.soulUrge/9)*4;
-    if(i<7)v+=timeRatio*8;
-    else v+=(1-timeRatio)*7;
-    v+=Math.sin(placeRatio*Math.PI*(i+1))*5;
-    if(lpTrait===name)v+=9;
-    if(nums.birthDay===i+1)v+=4;
+  TNAMES.forEach(name=>{
+    const w=TRAIT_SOURCES[name].reduce((s,[src,wt])=>s+strengths[lordKeys[src]||src]*wt,0);
+    let v=31+((w-5)/95)*65; // strength 5-100 -> display 31-96
+    if(MOOLANK_TRAIT[nums.moolank]===name)v+=6;
+    if(LP_BOOSTS[nums.lifePath]===name)v+=4;
     t[name]=Math.min(96,Math.max(31,Math.round(v)));
   });
   return t;
 }
 
 // ══════════════════════════════════
-//  ARCHETYPES (42)
+//  ARCHETYPES (42) — one per ordered pair of the two strongest classical
+//  grahas (7 × 6 = 42, an exact bijection). Row = strongest, col = runner-up.
 // ══════════════════════════════════
 const ARCHETYPES=[
-  {n:'The Builder',d:'Creates lasting structures that generate wealth across decades.'},
-  {n:'The Visionary',d:'Sees opportunities years — sometimes decades — before the crowd.'},
-  {n:'The Investor',d:'Masters the art of capital allocation and asymmetric returns.'},
-  {n:'The Pioneer',d:'Leads fearlessly into uncharted territory others fear to enter.'},
-  {n:'The Strategist',d:'Transforms complex challenges into decisive, high-leverage victories.'},
-  {n:'The Innovator',d:'Disrupts industries through relentless creative problem-solving.'},
-  {n:'The Operator',d:'Builds scalable systems that work whether or not they\'re in the room.'},
-  {n:'The Architect',d:'Designs the blueprint that entire organizations and markets follow.'},
-  {n:'The Negotiator',d:'Finds the win-win in every room — and usually wins bigger.'},
-  {n:'The Creator',d:'Builds loyal audiences and movements that convert into wealth.'},
-  {n:'The Explorer',d:'Discovers undervalued opportunities where others see nothing.'},
-  {n:'The Analyst',d:'Turns raw data and pattern recognition into decisive advantage.'},
-  {n:'The Optimizer',d:'Extracts extraordinary value from resources others leave on the table.'},
-  {n:'The Growth Engine',d:'Accelerates everything and everyone they touch.'},
-  {n:'The Empire Builder',d:'Constructs multi-generational legacies of influence and wealth.'},
-  {n:'The Product Visionary',d:'Creates products that people didn\'t know they needed — until they did.'},
-  {n:'The Market Leader',d:'Dominates categories and resets the competitive standard.'},
-  {n:'The Wealth Architect',d:'Engineers financial systems that compound exponentially over time.'},
-  {n:'The Industry Transformer',d:'Rewrites the fundamental rules of entire economic sectors.'},
-  {n:'The Opportunity Hunter',d:'Identifies asymmetric bets before the market prices them in.'},
-  {n:'The Connector',d:'Leverages relationships as a primary engine of wealth creation.'},
-  {n:'The Disruptor',d:'Challenges incumbents from the outside — and wins.'},
-  {n:'The Maven',d:'Becomes the definitive expert others pay premium to access.'},
-  {n:'The Catalyst',d:'Accelerates progress for everyone in their orbit.'},
-  {n:'The Sovereign',d:'Commands complete autonomy and builds entirely on their own terms.'},
-  {n:'The Rainmaker',d:'Generates high-value revenue with magnetic, consistent force.'},
+  // Sun strongest: Moon, Mars, Mercury, Jupiter, Venus, Saturn
   {n:'The Luminary',d:'Rises to become the guiding light in their chosen domain.'},
+  {n:'The Commander',d:'Leads with magnetic authority and earns rare, deep loyalty.'},
+  {n:'The Market Leader',d:'Dominates categories and resets the competitive standard.'},
+  {n:'The Empire Builder',d:'Constructs multi-generational legacies of influence and wealth.'},
+  {n:'The Maestro',d:'Performs at the absolute apex of their chosen domain.'},
+  {n:'The Sovereign',d:'Commands complete autonomy and builds entirely on their own terms.'},
+  // Moon strongest: Sun, Mars, Mercury, Jupiter, Venus, Saturn
+  {n:'The Catalyst',d:'Accelerates progress for everyone in their orbit.'},
   {n:'The Trailblazer',d:'Opens pathways others thought were permanently closed.'},
-  {n:'The Oracle',d:'Reads market signals and predicts trajectories before they materialize.'},
-  {n:'The Aggregator',d:'Consolidates fragmented markets into category-defining leaders.'},
-  {n:'The Multiplier',d:'Turns every dollar, idea, and connection into exponential returns.'},
-  {n:'The Curator',d:'Builds taste-making authority that becomes a premium asset.'},
+  {n:'The Connector',d:'Leverages relationships as a primary engine of wealth creation.'},
+  {n:'The Visionary',d:'Sees opportunities years — sometimes decades — before the crowd.'},
+  {n:'The Creator',d:'Builds loyal audiences and movements that convert into wealth.'},
   {n:'The Navigator',d:'Steers through uncertainty with precision where others stall.'},
+  // Mars strongest: Sun, Moon, Mercury, Jupiter, Venus, Saturn
+  {n:'The Pioneer',d:'Leads fearlessly into uncharted territory others fear to enter.'},
+  {n:'The Explorer',d:'Discovers undervalued opportunities where others see nothing.'},
+  {n:'The Disruptor',d:'Challenges incumbents from the outside — and wins.'},
+  {n:'The Growth Engine',d:'Accelerates everything and everyone they touch.'},
+  {n:'The Rainmaker',d:'Generates high-value revenue with magnetic, consistent force.'},
+  {n:'The Operator',d:'Builds scalable systems that work whether or not they\'re in the room.'},
+  // Mercury strongest: Sun, Moon, Mars, Jupiter, Venus, Saturn
+  {n:'The Strategist',d:'Transforms complex challenges into decisive, high-leverage victories.'},
+  {n:'The Maven',d:'Becomes the definitive expert others pay premium to access.'},
+  {n:'The Accelerator',d:'Compresses timelines — achieving in months what takes others years.'},
   {n:'The Synthesizer',d:'Combines cross-disciplinary insights to generate unique breakthroughs.'},
+  {n:'The Curator',d:'Builds taste-making authority that becomes a premium asset.'},
+  {n:'The Analyst',d:'Turns raw data and pattern recognition into decisive advantage.'},
+  // Jupiter strongest: Sun, Moon, Mars, Mercury, Venus, Saturn
+  {n:'The Industry Transformer',d:'Rewrites the fundamental rules of entire economic sectors.'},
+  {n:'The Oracle',d:'Reads market signals and predicts trajectories before they materialize.'},
+  {n:'The Multiplier',d:'Turns every dollar, idea, and connection into exponential returns.'},
+  {n:'The Investor',d:'Masters the art of capital allocation and asymmetric returns.'},
+  {n:'The Wealth Architect',d:'Engineers financial systems that compound exponentially over time.'},
+  {n:'The Architect',d:'Designs the blueprint that entire organizations and markets follow.'},
+  // Venus strongest: Sun, Moon, Mars, Mercury, Jupiter, Saturn
+  {n:'The Product Visionary',d:'Creates products that people didn\'t know they needed — until they did.'},
   {n:'The Conductor',d:'Orchestrates teams, capital, and ideas toward singular outcomes.'},
+  {n:'The Negotiator',d:'Finds the win-win in every room — and usually wins bigger.'},
+  {n:'The Innovator',d:'Disrupts industries through relentless creative problem-solving.'},
+  {n:'The Alchemist',d:'Turns raw ideas and effort into extraordinary, lasting wealth.'},
   {n:'The Craftsman',d:'Builds unassailable excellence through relentless mastery of their art.'},
+  // Saturn strongest: Sun, Moon, Mars, Mercury, Jupiter, Venus
+  {n:'The Builder',d:'Creates lasting structures that generate wealth across decades.'},
   {n:'The Pathfinder',d:'Discovers the route when no map yet exists.'},
   {n:'The Transformer',d:'Converts struggling assets and situations into thriving ones.'},
-  {n:'The Alchemist',d:'Turns raw ideas and effort into extraordinary, lasting wealth.'},
-  {n:'The Commander',d:'Leads with magnetic authority and earns rare, deep loyalty.'},
-  {n:'The Maestro',d:'Performs at the absolute apex of their chosen domain.'},
-  {n:'The Accelerator',d:'Compresses timelines — achieving in months what takes others years.'},
+  {n:'The Optimizer',d:'Extracts extraordinary value from resources others leave on the table.'},
+  {n:'The Aggregator',d:'Consolidates fragmented markets into category-defining leaders.'},
+  {n:'The Opportunity Hunter',d:'Identifies asymmetric bets before the market prices them in.'},
 ];
-function pickArchetype(traits,seed){
-  const sorted=Object.entries(traits).sort((a,b)=>b[1]-a[1]);
-  const topSum=sorted.slice(0,5).reduce((s,[,v])=>s+v,0);
-  const idx=(seed+topSum)%ARCHETYPES.length;
-  return ARCHETYPES[Math.abs(idx)];
+function pickArchetype(strengths){
+  // Rank the seven classical grahas; ties break by GRAHAS order (deterministic)
+  const ranked=[...GRAHAS].sort((a,b)=>strengths[b]-strengths[a]||GRAHAS.indexOf(a)-GRAHAS.indexOf(b));
+  const top1=GRAHAS.indexOf(ranked[0]);
+  const rest=GRAHAS.filter(g=>g!==ranked[0]);
+  const arch=ARCHETYPES[top1*6+rest.indexOf(ranked[1])];
+  return{...arch,pair:[ranked[0],ranked[1]]};
 }
 
 // ══════════════════════════════════
@@ -647,29 +964,36 @@ const CAREERS=[
   {n:'Creative Director',d:'Lead the visual and creative language of major brands',k:['Creativity','Leadership','Vision']},
 ];
 function scoreCareer(career,traits){return career.k.reduce((s,k)=>s+(traits[k]||50),0)}
-function pickCareers(traits,seed){
-  const rng=lcg(seed^0xABCD);
+function pickCareers(traits,chart){
+  // Deterministic: trait fit + a nudge where the career leads with the
+  // flagship trait of the 10th-house (career) lord. Ties break by list order.
+  const tenthTrait=MOOLANK_TRAIT[Object.keys(NUM_RULERS).find(k=>NUM_RULERS[k]===houseLord(chart,10))];
   return CAREERS
-    .map((c,i)=>({...c,score:scoreCareer(c,traits)+(rng()*12)}))
-    .sort((a,b)=>b.score-a.score)
+    .map((c,i)=>({...c,score:scoreCareer(c,traits)+(c.k.includes(tenthTrait)?6:0),i}))
+    .sort((a,b)=>b.score-a.score||a.i-b.i)
     .slice(0,5);
 }
 
 // ══════════════════════════════════
 //  WEALTH SCORES
 // ══════════════════════════════════
-function calcScores(traits,nums,seed,timeMin,placeH){
-  const tv=Object.values(traits);
-  const avg=tv.reduce((a,b)=>a+b,0)/tv.length;
-  const rng=lcg(seed^0x1F2E);
-  const lpB=[8,22,1].includes(nums.lifePath)?9:0;
-  const timeB=timeMin>300&&timeMin<840?5:0;
-  const placeB=(placeH%30>15)?4:-1;
-  const expB=nums.expression>=7?6:2;
-  const ws=Math.min(95,Math.max(38,Math.round(avg*0.62+lpB+timeB+placeB+rng()*16-3)));
-  const ss=Math.min(97,Math.max(40,Math.round(avg*0.67+expB+(rng()*14)-2)));
-  const mp=Math.min(87,Math.max(18,Math.round(ws*0.84+rng()*14-2)));
-  const up=Math.min(44,Math.max(4,Math.round(mp*0.33+rng()*10)));
+function calcScores(chart,strengths,yogas,sigScores,nums){
+  // Every input below is a real chart/numerology quantity; weights are the
+  // only editorial choice and are documented inline.
+  const top3=sigScores.slice(0,3);
+  const sigBlend=top3[0].score*0.5+top3[1].score*0.3+top3[2].score*0.2; // ~0-45
+  const yogaW=yogas.reduce((s,y)=>s+y.weight,0);                        // ~-4..14
+  const wealthLords=(strengths[houseLord(chart,2)]+strengths[houseLord(chart,11)])/2; // 5-100
+  const lpB=[8,22,1].includes(nums.lifePath)?4:0;   // classic "power" life paths
+  const mbB=[1,3,5,6].includes(nums.bhagyank)?2:0;  // wealth-friendly bhagyank rulers
+  const ws=Math.min(95,Math.max(38,Math.round(22+sigBlend*1.3+yogaW*2+wealthLords*0.22+lpB+mbB)));
+  // Success = self (lagna lord), authority (Sun) and career house (10th lord)
+  const ssRaw=strengths[houseLord(chart,1)]*0.45+strengths.Sun*0.25+strengths[houseLord(chart,10)]*0.30;
+  const ss=Math.min(97,Math.max(40,Math.round(26+ssRaw*0.72)));
+  const dhanaCount=yogas.filter(y=>y.weight>=2).length;
+  const mp=Math.min(87,Math.max(18,Math.round(ws*0.82+(dhanaCount>=2?6:dhanaCount===1?2:-3))));
+  const exaltedWealth=DASHA_SEQ.filter(p=>dignity(p,chart.positions[p].sign).label==='exalted'&&[1,2,5,9,10,11].includes(chart.positions[p].house)).length;
+  const up=Math.min(44,Math.max(4,Math.round(mp*0.33+exaltedWealth*5)));
   return{ws,ss,mp,up};
 }
 function wealthCat(ws){
@@ -683,45 +1007,92 @@ function wealthCat(ws){
 // ══════════════════════════════════
 //  TIMELINE
 // ══════════════════════════════════
-function calcTimeline(dob,scores,seed){
-  const by=parseInt(dob.split('-')[0]);
-  const currentYear=new Date().getFullYear();
-  const age=currentYear-by;
-  const base=22+mapRange(seed,0,9);
-  const phases=[
-    {icon:'🌱',age:`${base}–${base+4}`,ph:'First Breakthrough',d:'Initial momentum crystallizes. Key relationships and opportunities emerge that lay the structural foundation for everything ahead.',startAge:base,endAge:base+4},
-    {icon:'⚡',age:`${base+7}–${base+12}`,ph:'Acceleration Phase',d:'Skill, income, and influence compound rapidly. Multiple opportunities converge simultaneously. This is the fastest-moving window in your trajectory.',startAge:base+7,endAge:base+12},
-    {icon:'🚀',age:`${base+15}–${base+21}`,ph:'Opportunity Expansion',d:'Your reputation, network, and capital reach critical mass. The peak opportunity window opens — with your highest probability of major breakthroughs.',startAge:base+15,endAge:base+21},
-    {icon:'💎',age:`${base+23}–${base+30}`,ph:'Peak Prosperity',d:'Maximum wealth generation and influence. Legacy-defining achievements arrive. Assets compound on their own momentum.',startAge:base+23,endAge:base+30},
-    {icon:'🏛️',age:`${base+32}–${base+40}`,ph:'Legacy Phase',d:'Long-term impact solidifies into permanent legacy. Wealth operates independently. Focus shifts to generational impact and defining enduring institutions.',startAge:base+32,endAge:base+40},
-  ];
-  const milAge=base+(scores.ws>=80?1:scores.ws>=65?4:7);
-  return{phases,milRange:`${milAge}–${milAge+5}`,base,currentAge:age};
+// ══════════════════════════════════
+//  MILLIONAIRE WINDOW — the strongest wealth-significator's dasha period
+// ══════════════════════════════════
+function millionaireWindow(dashas,sigScores,currentAge){
+  const MIN_AGE=25,MAX_AGE=65;
+  const sig=Object.fromEntries(sigScores.map(s=>[s.planet,s.score]));
+  const topScore=sigScores[0].score||1;
+  // Candidate mahadashas: wealth-significant lord, overlapping ages 25-65.
+  // The question is "when WILL I…" — so windows still ahead of the person take
+  // strict precedence; a fully past window is only reported when nothing
+  // qualifying remains (e.g. the person is already past the 25-65 range).
+  const inRange=m=>m.endAge>MIN_AGE&&m.startAge<MAX_AGE;
+  const qual=dashas.filter(m=>sig[m.lord]>=topScore*0.6&&inRange(m));
+  const anyInRange=dashas.filter(inRange);
+  let pool=qual.filter(m=>m.endAge>currentAge);                 // strong lord, still ahead
+  if(!pool.length)pool=anyInRange.filter(m=>m.endAge>currentAge); // any lord, still ahead
+  if(!pool.length)pool=qual.length?qual:anyInRange;               // person past 65: best past
+  const scored=pool
+    .map(m=>({m,v:sig[m.lord]+(m.lord==='Jupiter'||m.lord==='Venus'?5:0)}))
+    .sort((a,b)=>b.v-a.v||a.m.startAge-b.m.startAge||DASHA_SEQ.indexOf(a.m.lord)-DASHA_SEQ.indexOf(b.m.lord));
+  const maha=scored[0].m;
+  // Antardasha refinement inside the winning mahadasha, same future-first rule
+  let subs=antardashas(maha).filter(s=>s.endAge>MIN_AGE&&s.startAge<MAX_AGE);
+  if(!subs.length)subs=antardashas(maha);
+  const fSubs=subs.filter(s=>s.endAge>currentAge);
+  const best=(fSubs.length?fSubs:subs)
+    .map(s=>({s,v:(sig[s.lord]||0)+(s.lord===maha.lord?8:0)})) // swakshetra bhukti bonus
+    .sort((a,b)=>b.v-a.v||a.s.startAge-b.s.startAge)[0].s;
+  let startAge=Math.max(MIN_AGE,Math.floor(best.startAge)),endAge=Math.ceil(best.endAge);
+  if(endAge-startAge<2){const mid=(startAge+endAge)/2;startAge=Math.max(MIN_AGE,Math.round(mid-1.5));endAge=Math.round(mid+1.5)}
+  const reasons=(sigScores.find(s=>s.planet===maha.lord)||{reasons:[]}).reasons;
+  return{startAge,endAge,mahaLord:maha.lord,antarLord:best.lord,reasons};
+}
+
+// ══════════════════════════════════
+//  TIMELINE — the person's actual mahadasha sequence
+// ══════════════════════════════════
+const DASHA_ICONS={Sun:'☀️',Moon:'🌙',Mars:'🔥',Mercury:'📊',Jupiter:'💎',Venus:'🎨',Saturn:'🏛️',Rahu:'🌀',Ketu:'🕉️'};
+const DASHA_FLAVOR={
+  Sun:'A period of visibility, authority and recognition. Positions of leadership and reputation-building carry the most leverage now.',
+  Moon:'A period ruled by connection and public resonance. Income flows through relationships, audiences and emotional intelligence.',
+  Mars:'A high-drive, competitive period. Bold moves, launches and decisive action are rewarded; impulsiveness is the tax to avoid.',
+  Mercury:'A commerce-and-communication period. Deals, trade, analysis and skill-stacking compound fastest in these years.',
+  Jupiter:'The great benefic\'s period — expansion, mentors, capital and luck align. Traditionally the most wealth-generous cycle.',
+  Venus:'A period of comfort, luxury and creative monetization. Assets, brand and lifestyle businesses flourish under Venus.',
+  Saturn:'A discipline-and-structure period. Slow, durable, compounding gains; what you systematize now pays for decades.',
+  Rahu:'An ambitious, unconventional period. Rapid, sometimes volatile rises through new industries, foreign lands and technology.',
+  Ketu:'An introspective, detaching period. Wealth grows through specialization and letting go of what no longer serves.',
+};
+function calcTimeline(dashas,dob,chart,strengths){
+  const[by,bm,bd]=dob.split('-').map(Number);
+  const now=new Date();
+  const currentAge=(now-new Date(by,bm-1,bd))/(365.25*24*3600*1000);
+  // Show 5 mahadashas starting from the first one still relevant past childhood
+  const firstIdx=Math.max(0,dashas.findIndex(d=>d.endAge>12));
+  const phases=dashas.slice(firstIdx,firstIdx+5).map(m=>{
+    const pos=chart.positions[m.lord];
+    const dg=dignity(m.lord,pos.sign);
+    return{
+      icon:DASHA_ICONS[m.lord],
+      age:`${Math.round(m.startAge)}–${Math.round(m.endAge)}`,
+      ph:`${m.lord} Mahadasha`,
+      d:`${DASHA_FLAVOR[m.lord]} In your chart ${m.lord} is ${dg.label} in ${RASHI[pos.sign]} (house ${pos.house}).`,
+      startAge:m.startAge,endAge:m.endAge,lord:m.lord,
+    };
+  });
+  return{phases,currentAge};
 }
 
 // ══════════════════════════════════
 //  INSIGHTS CHIPS
 // ══════════════════════════════════
-const INSIGHT_TEMPLATES=[
-  (d)=>d.nums.lifePath===11||d.nums.lifePath===22||d.nums.lifePath===33?{text:`Master Number ${d.nums.lifePath} Life Path`,cls:'gold'}:null,
-  (d)=>d.scores.ws>=80?{text:'Elite Wealth Profile',cls:'gold'}:null,
-  (d)=>d.scores.mp>=70?{text:'High Millionaire Probability',cls:'green'}:null,
-  (d)=>d.scores.up>=25?{text:'Ultra-Wealth Signal Detected',cls:'gold'}:null,
-  (d)=>d.traits['Leadership']>=80?{text:'Natural Leader',cls:'green'}:null,
-  (d)=>d.traits['Innovation']>=80?{text:'Disruptive Innovator',cls:'green'}:null,
-  (d)=>d.traits['Risk Tolerance']>=80?{text:'High Risk Tolerance',cls:'green'}:null,
-  (d)=>d.traits['Vision']>=80?{text:'Long-Range Visionary',cls:'gold'}:null,
-  (d)=>d.traits['Ambition']>=80?{text:'Extreme Ambition',cls:'gold'}:null,
-  (d)=>d.nums.birthDay===8?{text:'Birth Day 8 — Wealth Number',cls:'gold'}:null,
-  (d)=>d.nums.lifePath===8?{text:'Life Path 8 — The Powerhouse',cls:'gold'}:null,
-  (d)=>d.timeline.currentAge>=d.timeline.base&&d.timeline.currentAge<=d.timeline.base+4?{text:'🌱 In Your Breakthrough Phase',cls:'green'}:null,
-  (d)=>d.timeline.currentAge>=d.timeline.base+7&&d.timeline.currentAge<=d.timeline.base+12?{text:'⚡ In Your Acceleration Phase',cls:'green'}:null,
-  (d)=>d.timeline.currentAge>=d.timeline.base+15&&d.timeline.currentAge<=d.timeline.base+21?{text:'🚀 In Peak Opportunity Window',cls:'gold'}:null,
-  (d)=>({text:d.careers[0].n+' Alignment',cls:''}),
-  (d)=>({text:d.arch.n,cls:''}),
-];
 function buildInsights(data){
-  return INSIGHT_TEMPLATES.map(fn=>fn(data)).filter(Boolean).slice(0,7);
+  const{chart,yogas,nums,dashas,timeline}=data;
+  const chips=[];
+  const moon=chart.positions.Moon;
+  chips.push({text:`Moon in ${moon.nak.name} · Pada ${moon.nak.pada}`,cls:'gold'});
+  chips.push({text:`${RASHI[chart.asc.sign]} Lagna`,cls:''});
+  yogas.filter(y=>y.weight>0).slice(0,3).forEach(y=>chips.push({text:y.name.replace(/\s*\(.*\)/,''),cls:'gold'}));
+  if([11,22,33].includes(nums.lifePath))chips.push({text:`Master Number ${nums.lifePath} Life Path`,cls:'gold'});
+  DASHA_SEQ.filter(p=>dignity(p,chart.positions[p].sign).label==='exalted').slice(0,2)
+    .forEach(p=>chips.push({text:`${p} Exalted in ${RASHI[chart.positions[p].sign]}`,cls:'green'}));
+  const cd=currentDasha(dashas,timeline.currentAge);
+  chips.push({text:`In ${cd.lord} Mahadasha`,cls:'green'});
+  chips.push({text:`Moolank ${nums.moolank} · ${nums.moolankRuler}`,cls:''});
+  return chips.slice(0,7);
 }
 
 // ══════════════════════════════════
@@ -729,31 +1100,35 @@ function buildInsights(data){
 // ══════════════════════════════════
 const RP={
   who:[
-    d=>`${d.fn}, you're a classic ${d.arch.n} — driven by ${d.top} and ${d.sec}, with a ${d.wc.l}-tier Wealth Score of ${d.sc.ws}. That combination isn't common. It means you naturally spot opportunities others miss, and when you commit, you follow through. Your biggest career fit is ${d.cars[0].n}, and for good reason — every dominant trait in your profile points straight at it.`,
-    d=>`You show up in the data as ${d.arch.n}, ${d.fn}. Your ${d.top} leads at ${d.tr[d.top]}/100, your ${d.sec} backs it at ${d.tr[d.sec]}/100 — that's a pairing that consistently produces results above what most people expect. Wealth Score: ${d.sc.ws} (${d.wc.l}). Your natural lane is ${d.cars[0].n}, and the numbers make that hard to argue with.`,
-    d=>`The archetype is ${d.arch.n}, and the core engine is ${d.top} + ${d.sec}, ${d.fn}. At a ${d.wc.l}-tier Wealth Score of ${d.sc.ws}, you're not in the average range — you're in the bracket where things compound fast when conditions align. ${d.cars[0].n} is where that energy converts most efficiently.`,
+    d=>`${d.fn}, your chart casts you as ${d.arch.n} — ${d.p1} and ${d.p2} are the two strongest grahas in your kundli, and together they shape how you build. With ${RASHI[d.ch.asc.sign]} rising and the Moon in ${d.moon.nak.name}, your ${d.wc.l}-tier Wealth Score of ${d.sc.ws} comes from real placements, not flattery. Your best-aligned path is ${d.cars[0].n} — the trait profile your planets produce points straight at it.`,
+    d=>`You read as ${d.arch.n}, ${d.fn}: ${d.p1} leads your chart with ${d.p2} close behind. Your lagna is ${RASHI[d.ch.asc.sign]}, your janma nakshatra is ${d.moon.nak.name} (pada ${d.moon.nak.pada}), and your top trait ${d.top} scores ${d.tr[d.top]}/100. Wealth Score: ${d.sc.ws} (${d.wc.l}). The natural lane for that combination is ${d.cars[0].n}.`,
+    d=>`The archetype is ${d.arch.n}, and the engine behind it is ${d.p1} + ${d.p2} — your chart's dominant pair, ${d.fn}. Born under ${d.moon.nak.name} with ${RASHI[d.ch.asc.sign]} rising, you carry a ${d.wc.l}-tier Wealth Score of ${d.sc.ws}, with ${d.top} and ${d.sec} as the traits doing the heavy lifting. ${d.cars[0].n} is where that converts most efficiently.`,
   ],
   timing:[
-    d=>`Your wealth window opens around age ${d.tl.milRange}. That's your highest-probability window — not because of luck, but because that's when ${d.arch.n} profiles historically see their ${d.top} and ${d.sec} fully compound. Watch the ages ${d.tl.phases[1].age} period closely. That Acceleration Phase is when decisions carry the most leverage. One right move then is worth ten right moves later.`,
-    d=>`Age ${d.tl.milRange} is your breakthrough range, ${d.fn}. The First Breakthrough window (${d.tl.phases[0].age}) is where the foundation gets laid — don't sleep on it. Then the Acceleration Phase (${d.tl.phases[1].age}) hits and things move fast. That's when your ${d.top} becomes a genuine wealth multiplier, not just a personality trait.`,
-    d=>`The numbers point to age ${d.tl.milRange} as your prime wealth window, ${d.fn}. Between now and the Opportunity Expansion phase (age ${d.tl.phases[2].age}), every decision around your ${d.cars[0].n} path compounds. Your Success Potential of ${d.sc.ss} means you have the engine — the timing just needs to be respected.`,
+    d=>`Your wealth window opens at age ${d.mil.startAge}–${d.mil.endAge}, inside your ${d.mil.mahaLord} mahadasha (${d.mil.antarLord} antardasha). Why ${d.mil.mahaLord}? In your chart it is ${d.milReason}. Vimshottari timing says a planet delivers what it promises when its period runs — and this is the strongest wealth period your chart offers between 25 and 65.`,
+    d=>`Age ${d.mil.startAge}–${d.mil.endAge} is your breakthrough range, ${d.fn} — the ${d.mil.antarLord} antardasha of your ${d.mil.mahaLord} mahadasha. ${d.mil.mahaLord} earns that role because it is ${d.milReason}. Until then, your current ${d.cd.lord} period (${DASHA_FLAVOR[d.cd.lord].split('.')[0].toLowerCase()}) is the preparation lap — what you build now is what ${d.mil.mahaLord} multiplies later.`,
+    d=>`The dasha timeline points to age ${d.mil.startAge}–${d.mil.endAge} as your prime window, ${d.fn}: ${d.mil.mahaLord} mahadasha, ${d.mil.antarLord} antardasha. In your kundli ${d.mil.mahaLord} is ${d.milReason} — exactly the kind of significator Vimshottari expects to pay out in its own period. Your Success Score of ${d.sc.ss} says the engine is there; the calendar says when to floor it.`,
   ],
   edge:[
-    d=>`Your edge is ${d.top}. At ${d.tr[d.top]}/100 it's not just a strength — it's a competitive moat. Pair it with ${d.sec} (${d.tr[d.sec]}/100) and you've got the DNA of someone who doesn't just survive high-stakes environments — they thrive in them. Watch your ${d.low} though. At ${d.tr[d.low]}/100 it's the one place where you can leave value on the table without realising it. The gap between good and elite often lives there.`,
-    d=>`${d.fn}, what makes your profile stick out is the ${d.top}–${d.sec} combination at the top. Most people are strong in one. You're above average in both, and they reinforce each other. That's rare and it's bankable. Your ${d.low} score (${d.tr[d.low]}/100) is the honest counterweight — acknowledge it, build around it, and you remove the main friction in your path.`,
-    d=>`The signal is clear, ${d.fn}: ${d.top} at ${d.tr[d.top]}/100 is your unfair advantage. It shapes how you see problems and how quickly you move on them. Back that with your ${d.sec} (${d.tr[d.sec]}/100) and you have a profile that's hard to out-manoeuvre. One honest note: ${d.low} at ${d.tr[d.low]}/100 is where your blind spot tends to live. Knowing it is already half the fix.`,
+    d=>`Your edge is ${d.top} (${d.tr[d.top]}/100), powered by ${d.p1}'s strength in your chart${d.yBest?`, and reinforced by your ${d.yBest.name}`:''}. Pair it with ${d.sec} (${d.tr[d.sec]}/100) and you thrive where stakes are high. The honest counterweight: ${d.low} at ${d.tr[d.low]}/100${d.yWarn?`, plus a caution — ${d.yWarn.desc}`:''}. The gap between good and elite usually lives exactly there.`,
+    d=>`${d.fn}, what stands out is the ${d.top}–${d.sec} pairing at the top of your trait profile — a direct product of ${d.p1} and ${d.p2} dominating your chart${d.yBest?`. Add your ${d.yBest.name} — ${d.yBest.desc.toLowerCase()} — and the wealth signal is structural, not cosmetic`:''}. Your ${d.low} score (${d.tr[d.low]}/100) is the friction point${d.yWarn?` (${d.yWarn.desc.toLowerCase()})`:''}; build around it deliberately.`,
+    d=>`The signal is clear, ${d.fn}: ${d.top} at ${d.tr[d.top]}/100 is your unfair advantage, and it comes straight from ${d.p1}'s placement${d.yBest?`. Your ${d.yBest.name} backs it: ${d.yBest.desc.toLowerCase()}`:''}. One honest note: ${d.low} at ${d.tr[d.low]}/100 is where the blind spot lives${d.yWarn?`, and ${d.yWarn.desc.toLowerCase()}`:''}. Knowing it is already half the fix.`,
   ],
 };
-function pickT(arr,seed,off){return arr[(Math.abs(seed)+off)%arr.length]}
 function buildReport(data){
   const ents=Object.entries(data.traits).sort((a,b)=>b[1]-a[1]);
-  const d={fn:data.firstName,arch:data.arch,sc:data.scores,wc:data.wcat,tr:data.traits,cars:data.careers,tl:data.timeline,top:ents[0][0],sec:ents[1][0],trd:ents[2][0],low:ents[ents.length-1][0]};
-  const s=hc(data.firstName+data.arch.n+data.dob);
-  return[
-    pickT(RP.who,s,0)(d),
-    pickT(RP.timing,s,1)(d),
-    pickT(RP.edge,s,2)(d),
-  ];
+  const posY=data.yogas.filter(y=>y.weight>0).sort((a,b)=>b.weight-a.weight);
+  const negY=data.yogas.filter(y=>y.weight<0);
+  const d={fn:data.firstName,arch:data.arch,sc:data.scores,wc:data.wcat,tr:data.traits,
+    cars:data.careers,ch:data.chart,moon:data.chart.positions.Moon,mil:data.mil,
+    milReason:data.mil.reasons.length?data.mil.reasons.slice(0,2).join(' and '):'the strongest wealth significator available to your chart',
+    cd:currentDasha(data.dashas,data.timeline.currentAge),
+    p1:data.arch.pair[0],p2:data.arch.pair[1],
+    yBest:posY[0]||null,yWarn:negY[0]||null,
+    top:ents[0][0],sec:ents[1][0],low:ents[ents.length-1][0]};
+  // Variant choice is itself numerological: the Chaldean name number
+  const v=data.nums.chaldean%3;
+  return[RP.who[v](d),RP.timing[(v+1)%3](d),RP.edge[(v+2)%3](d)];
 }
 
 // ══════════════════════════════════
@@ -844,13 +1219,28 @@ function formatPlace(d){
   return [city,state,country].filter(Boolean).join(', ') || (d.display_name||'Unknown');
 }
 
+// Standard-time UTC offsets for countries with a single national zone.
+// Multi-zone countries (us, ca, ru, au, br…) fall through to the longitude
+// estimate. The form field stays editable for DST / historical corrections.
+const COUNTRY_TZ={in:5.5,np:5.75,lk:5.5,pk:5,bd:6,mm:6.5,cn:8,jp:9,kr:9,sg:8,my:8,ph:8,th:7,vn:7,id:null,
+  ir:3.5,af:4.5,ae:4,sa:3,qa:3,kw:3,om:4,il:2,tr:3,
+  gb:0,ie:0,pt:0,de:1,fr:1,it:1,es:1,nl:1,be:1,ch:1,at:1,pl:1,se:1,no:1,dk:1,cz:1,hu:1,
+  gr:2,ro:2,fi:2,ua:2,eg:2,za:2,ng:1,ke:3,gh:0,ma:1,
+  ar:-3,cl:-4,co:-5,pe:-5,ve:-4,ec:-5,uy:-3,bo:-4,py:-4,
+  nz:12,fj:12,mx:null,us:null,ca:null,ru:null,au:null,br:null,kz:null};
+function estimateUtcOffset(lat,lon,cc){
+  if(cc&&COUNTRY_TZ[cc]!=null)return COUNTRY_TZ[cc];
+  return Math.round(lon/15*2)/2; // half-hour granularity longitude estimate
+}
 function selectPlace(d){
   if(!d) return;
   const lat=parseFloat(d.lat), lon=parseFloat(d.lon), label=formatPlace(d);
-  selectedPlace={ lat, lon, label };
+  const cc=(d.address&&d.address.country_code)||'';
+  selectedPlace={ lat, lon, label, cc };
   document.getElementById('f-place').value=label;
   document.getElementById('f-lat').value=lat;
   document.getElementById('f-lon').value=lon;
+  document.getElementById('f-utcoff').value=estimateUtcOffset(lat,lon,cc);
   const list=document.getElementById('ac-list');
   list.innerHTML=''; list.classList.remove('on'); _acIdx=-1;
   document.getElementById('f-place').classList.remove('err');
@@ -894,6 +1284,12 @@ function validate(){
     placeErr.textContent = placeEl.value.trim() ? 'Please select a city from the suggestions' : 'Please enter your birth place.';
     placeErr.style.display='block'; ok=false;
   } else { placeEl.classList.remove('err'); placeErr.style.display='none'; }
+  // UTC offset must be a plausible number — it feeds the Julian Day directly
+  const offEl=document.getElementById('f-utcoff'), offErr=document.getElementById('e-utcoff');
+  const off=parseFloat(offEl.value);
+  if(isNaN(off)||off<-12||off>14){
+    offEl.classList.add('err');offErr.style.display='block';ok=false;
+  } else { offEl.classList.remove('err');offErr.style.display='none'; }
   return ok;
 }
 
@@ -903,12 +1299,15 @@ function startAnalysis(){
   const dob=document.getElementById('f-dob').value;
   const tob=document.getElementById('f-tob').value;
   const place=document.getElementById('f-place').value.trim();
+  const lat=parseFloat(document.getElementById('f-lat').value);
+  const lon=parseFloat(document.getElementById('f-lon').value);
+  const utcOff=parseFloat(document.getElementById('f-utcoff').value);
   show('s-load');
-  runLoading(()=>compute(name,dob,tob,place));
+  runLoading(()=>compute(name,dob,tob,place,lat,lon,utcOff));
 }
 
-const MSGS=['Building your success profile…','Mapping opportunity patterns…','Analyzing wealth indicators…','Calculating personal strengths…','Generating career alignment…','Constructing your Money DNA…','Decoding life path numbers…','Measuring your growth patterns…'];
-const STEPS=['Numerology analysis','Trait scoring engine','Wealth calculation','Career matching','Timeline projection','Report generation'];
+const MSGS=['Computing planetary positions…','Casting your sidereal birth chart…','Locating your lagna & houses…','Reading your Moon nakshatra…','Mapping your Vimshottari dasha timeline…','Scanning for Dhana yogas…','Decoding Moolank & Bhagyank…','Constructing your Money DNA…'];
+const STEPS=['Ephemeris computation','Lagna & house mapping','Nakshatra & dasha timeline','Dhana yoga detection','Numerology analysis','Report generation'];
 
 function runLoading(cb){
   const fill=document.getElementById('prog-fill');
@@ -936,20 +1335,30 @@ function runLoading(cb){
   },6200);
 }
 
-function compute(name,dob,tob,place){
+function compute(name,dob,tob,place,lat,lon,utcOff){
   const firstName=name.split(/\s+/)[0];
-  const seed=hc(name.toLowerCase()+dob+tob+place.toLowerCase());
+  // 1. Numerology (Vedic + corrected Pythagorean)
   const nums=calcNums(name,dob);
-  const timeMin=tob?parseInt(tob.split(':')[0])*60+parseInt(tob.split(':')[1]):720;
-  const placeH=hc(place.toLowerCase().replace(/[^a-z0-9]/g,''));
-  const traits=calcTraits(seed,nums,timeMin,placeH);
-  const arch=pickArchetype(traits,seed);
-  const careers=pickCareers(traits,seed);
-  const scores=calcScores(traits,nums,seed,timeMin,placeH);
+  // 2. Sidereal birth chart from the actual birth moment and coordinates
+  const chart=buildChart(dob,tob,lat,lon,utcOff);
+  // 3. Graha strengths, wealth yogas, significators
+  const strengths={};
+  DASHA_SEQ.forEach(p=>strengths[p]=planetStrength(chart,p));
+  const yogas=detectYogas(chart);
+  const sigScores=wealthSignificatorScores(chart,yogas);
+  // 4. Vimshottari dasha timeline from the Moon's nakshatra
+  const dashas=vimshottari(chart.moonNak);
+  // 5. Derived, fully deterministic outputs
+  const traits=calcTraits(chart,strengths,nums);
+  const arch=pickArchetype(strengths);
+  const careers=pickCareers(traits,chart);
+  const scores=calcScores(chart,strengths,yogas,sigScores,nums);
   const wcat=wealthCat(scores.ws);
-  const timeline=calcTimeline(dob,scores,seed);
-  const report=buildReport({firstName,arch,scores,wcat,traits,careers,timeline,dob});
-  RESULT={name,firstName,dob,nums,traits,arch,careers,scores,wcat,timeline,report,seed};
+  const timeline=calcTimeline(dashas,dob,chart,strengths);
+  const mil=millionaireWindow(dashas,sigScores,timeline.currentAge);
+  timeline.milRange=`${mil.startAge}–${mil.endAge}`;
+  const report=buildReport({firstName,arch,scores,wcat,traits,careers,timeline,chart,yogas,mil,nums,dashas});
+  RESULT={name,firstName,dob,nums,traits,arch,careers,scores,wcat,timeline,report,chart,yogas,sigScores,dashas,mil};
   renderResults();
   show('s-res');
 }
@@ -980,7 +1389,7 @@ function renderResults(){
   document.getElementById('r-insights').innerHTML=insights.map(c=>`<div class="insight-chip ${c.cls}">${c.text}</div>`).join('');
 
   // Archetype desc
-  document.getElementById('r-archdesc').innerHTML=`<p><strong style="color:#e8d5a0">${R.arch.n}</strong> &mdash; ${R.arch.d}</p><p>This archetype represents your dominant wealth-creation pattern — the lens through which your strongest traits converge into a unified financial identity and career direction.</p>`;
+  document.getElementById('r-archdesc').innerHTML=`<p><strong style="color:#e8d5a0">${R.arch.n}</strong> &mdash; ${R.arch.d}</p><p>This archetype is drawn from the two strongest grahas in your chart — <strong style="color:#e8d5a0">${R.arch.pair[0]}</strong> and <strong style="color:#e8d5a0">${R.arch.pair[1]}</strong> — the planetary pair that shapes your dominant wealth-creation pattern and career direction.</p>`;
 
   // Gauges (animate after render)
   setTimeout(()=>{
@@ -999,16 +1408,20 @@ function renderResults(){
     </div>`).join('');
   setTimeout(()=>document.querySelectorAll('.tfill').forEach(el=>{el.style.width=el.dataset.w+'%'}),300);
 
-  // Numerology
+  // Numerology — Vedic numbers first (with graha rulers), then Pythagorean
   const NS=[
-    {l:'Life Path',v:R.nums.lifePath},{l:'Expression',v:R.nums.expression},
-    {l:'Soul Urge',v:R.nums.soulUrge},{l:'Personality',v:R.nums.personality},
-    {l:'Birth Day',v:R.nums.birthDay},{l:'Birth Month',v:R.nums.birthMonth},
-    {l:'Birth Year',v:R.nums.birthYear},{l:'Destiny',v:R.nums.destiny},
+    {l:`Moolank · ${R.nums.moolankRuler}`,v:R.nums.moolank},
+    {l:`Bhagyank · ${R.nums.bhagyankRuler}`,v:R.nums.bhagyank},
+    {l:`Name No. · ${R.nums.chaldeanRuler}`,v:R.nums.chaldean},
+    {l:'Life Path',v:R.nums.lifePath},
+    {l:'Expression',v:R.nums.expression},
+    {l:'Soul Urge',v:R.nums.soulUrge},
+    {l:'Personality',v:R.nums.personality},
+    {l:`Nakshatra · Pada ${R.chart.moonNak.pada}`,v:R.chart.moonNak.name,txt:true},
   ];
   document.getElementById('r-nums').innerHTML=NS.map(n=>{
-    const master=n.v===11||n.v===22||n.v===33;
-    return`<div class="nc${master?' master':''}"><div class="nv">${n.v}</div><div class="nlbl">${n.l}</div></div>`;
+    const master=!n.txt&&(n.v===11||n.v===22||n.v===33);
+    return`<div class="nc${master?' master':''}"><div class="nv${n.txt?' nv-sm':''}">${n.v}</div><div class="nlbl">${n.l}</div></div>`;
   }).join('');
 
   // Careers
@@ -1029,8 +1442,11 @@ function renderResults(){
     </div>`;
   }).join('');
 
-  // Mil age
+  // Millionaire window — the actual dasha period behind it
   document.getElementById('r-milage').textContent='Age '+R.timeline.milRange;
+  const milYr=y=>parseInt(R.dob.split('-')[0])+y;
+  document.getElementById('r-milsub').textContent=
+    `${R.mil.mahaLord} Mahadasha · ${R.mil.antarLord} Antardasha (${milYr(R.mil.startAge)}–${milYr(R.mil.endAge)})`;
 
   // Report
   document.getElementById('r-report').innerHTML=R.report.map(p=>`<p>${p}</p>`).join('');
@@ -1042,7 +1458,7 @@ function renderResults(){
   document.getElementById('sh-ss').textContent=R.scores.ss;
   document.getElementById('sh-mp').textContent=R.scores.mp+'%';
   document.getElementById('sh-up').textContent=R.scores.up+'%';
-  document.getElementById('sh-path').innerHTML=`Top Path: <strong>${R.careers[0].n}</strong><br>Breakthrough Age: <strong>${R.timeline.milRange}</strong><br>Wealth Tier: <strong>${R.wcat.l}</strong>`;
+  document.getElementById('sh-path').innerHTML=`Top Path: <strong>${R.careers[0].n}</strong><br>Breakthrough: <strong>${R.mil.mahaLord} dasha · Age ${R.timeline.milRange}</strong><br>Moon: <strong>${R.chart.moonNak.name}</strong> · Lagna: <strong>${RASHI[R.chart.asc.sign]}</strong>`;
 
   // Show native share button if supported
   if(navigator.share){document.getElementById('sh-native-btn').style.display='block'}
@@ -1057,7 +1473,7 @@ function closeShare(){document.getElementById('sh-ov').classList.remove('on')}
 function buildShareText(){
   if(!RESULT)return '';
   const R=RESULT;
-  return`💎 My Money DNA™ Results\n\n🧬 ${R.firstName} — ${R.arch.n}\n\n📊 Wealth Score: ${R.scores.ws}/100 (${R.wcat.l})\n🎯 Success Potential: ${R.scores.ss}/100\n💰 Millionaire Probability: ${R.scores.mp}%\n🚀 Ultra-Wealth Potential: ${R.scores.up}%\n\n⭐ Top Career Path: ${R.careers[0].n}\n⚡ Wealth Breakthrough Age: ${R.timeline.milRange}\n\nDiscover yours at moneydna.app\n(Entertainment only — not financial advice)`;
+  return`💎 My Money DNA™ Results\n\n🧬 ${R.firstName} — ${R.arch.n}\n🌙 Moon in ${R.chart.moonNak.name} · ${RASHI[R.chart.asc.sign]} Lagna\n\n📊 Wealth Score: ${R.scores.ws}/100 (${R.wcat.l})\n🎯 Success Potential: ${R.scores.ss}/100\n💰 Millionaire Probability: ${R.scores.mp}%\n🚀 Ultra-Wealth Potential: ${R.scores.up}%\n\n⭐ Top Career Path: ${R.careers[0].n}\n⚡ Wealth Breakthrough: Age ${R.timeline.milRange} (${R.mil.mahaLord} Mahadasha)\n\nDiscover yours at moneydna.app\n(Entertainment only — not financial advice)`;
 }
 
 function copyShareText(){
@@ -1106,6 +1522,7 @@ function restart(){
   selectedPlace=null;
   document.getElementById('f-lat').value='';
   document.getElementById('f-lon').value='';
+  document.getElementById('f-utcoff').value='';
   const acl=document.getElementById('ac-list'); if(acl){acl.innerHTML='';acl.classList.remove('on')}
   document.getElementById('prog-fill').style.width='0%';
   // Reset progress dots
@@ -1118,6 +1535,41 @@ function restart(){
 
 // Close share on overlay click
 document.getElementById('sh-ov').addEventListener('click',function(e){if(e.target===this)closeShare()});
+
+// ══════════════════════════════════
+//  SELF-TESTS — open the page with ?selftest to verify the ephemeris against
+//  published sidereal (Lahiri) charts. Logs PASS/FAIL to the console only.
+// ══════════════════════════════════
+function runSelfTests(){
+  const results=[];
+  const t=(name,ok,detail)=>{results.push({name,ok,detail});console.log(`${ok?'PASS':'FAIL'} — ${name}${detail?' — '+detail:''}`)}
+  // Known charts (cross-checked with drikpanchang.com / Jagannatha Hora)
+  const jobs=buildChart('1955-02-24','19:15',37.77,-122.42,-8);
+  t('Jobs Moon in Pisces (Uttara Bhadrapada)',jobs.positions.Moon.sign===11&&jobs.positions.Moon.nak.name==='Uttara Bhadrapada',`got ${RASHI[jobs.positions.Moon.sign]} / ${jobs.positions.Moon.nak.name}`);
+  t('Jobs Sun in Aquarius',jobs.positions.Sun.sign===10,`got ${RASHI[jobs.positions.Sun.sign]}`);
+  t('Jobs Leo lagna',jobs.asc.sign===4,`got ${RASHI[jobs.asc.sign]}`);
+  const obama=buildChart('1961-08-04','19:24',21.3,-157.86,-10);
+  t('Obama Moon in Taurus/Rohini',obama.positions.Moon.sign===1&&obama.positions.Moon.nak.name==='Rohini',`got ${RASHI[obama.positions.Moon.sign]} / ${obama.positions.Moon.nak.name}`);
+  t('Obama Capricorn lagna',obama.asc.sign===9,`got ${RASHI[obama.asc.sign]}`);
+  const modi=buildChart('1950-09-17','11:00',23.79,72.64,5.5);
+  t('Modi Moon in Scorpio/Anuradha',modi.positions.Moon.sign===7&&modi.positions.Moon.nak.name==='Anuradha',`got ${RASHI[modi.positions.Moon.sign]} / ${modi.positions.Moon.nak.name}`);
+  t('Modi Scorpio lagna',modi.asc.sign===7,`got ${RASHI[modi.asc.sign]}`);
+  // Mesha Sankranti: sidereal Sun ~0° Aries around Apr 14
+  const sank=siderealLongitudes(julianDay(1990,4,14,12));
+  const sunOff=((sank.Sun+180)%360)-180;
+  t('Sidereal Sun ≈ 0° Aries on 1990-04-14',Math.abs(sunOff)<0.75,`Sun at ${sank.Sun.toFixed(2)}°`);
+  // Dasha invariants
+  t('Vimshottari years sum to 120',DASHA_SEQ.reduce((s,l)=>s+DASHA_YEARS[l],0)===120);
+  const vd=vimshottari(jobs.moonNak);
+  t('First dasha lord = janma nakshatra lord',vd[0].lord===jobs.moonNak.lord,`got ${vd[0].lord} vs ${jobs.moonNak.lord}`);
+  const contig=vd.every((m,i)=>i===0||Math.abs(m.startAge-vd[i-1].endAge)<1e-9);
+  t('Mahadashas are contiguous',contig);
+  const subs=antardashas(vd[2]);
+  t('Antardashas fill the mahadasha',Math.abs(subs.reduce((s,a)=>s+(a.endAge-a.startAge),0)-(vd[2].endAge-vd[2].startAge))<1e-6);
+  console.log(`Self-tests: ${results.filter(r=>r.ok).length}/${results.length} passed`);
+  return results;
+}
+if(typeof location!=='undefined'&&location.search.includes('selftest'))runSelfTests();
 </script>
 </body>
 </html>
